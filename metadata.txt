@@ -7,9 +7,9 @@
 # This file should be included when you package your plugin.# Mandatory items:
 
 [general]
-name=Stream Feature Extractor
+name=SG Diagram Downloader
 qgisMinimumVersion=2.0
-description=A tool to extract features from a stream network.
+description=A tool for QGIS that will download SG (South African Surveyor General) diagrams.
 version=1.0.1
 author=Linfiniti Consulting CC.
 email=tim@linfiniti.com
@@ -22,11 +22,11 @@ email=tim@linfiniti.com
 # changelog=
 
 # Tags are comma separated with spaces allowed
-tags=stream,well,catchment,sink,confluence,branch
+tags=diagram,download
 
-homepage=https://github.com/timlinux/stream-feature-extractor
-tracker=https://github.com/timlinux/stream-feature-extractor/issues
-repository=git://github.com/timlinux/stream-feature-extractor.git
+homepage=https://github.com/timlinux/sg-diagram-downloader
+tracker=https://github.com/timlinux/sg-diagram-downloader/issues
+repository=git://github.com/timlinux/sg-diagram-downloader.git
 icon=icon.png
 # experimental flag
 experimental=False

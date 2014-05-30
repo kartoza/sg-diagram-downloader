@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 """
 /***************************************************************************
- StreamFeatureExtractor
+ SGDiagramDownloader
                                  A QGIS plugin
- A tool to extract features from a stream network.
+A tool for QGIS that will download SG (South African Surveyor General)
+diagrams.
                              -------------------
         begin                : 2014-05-07
         copyright            : (C) 2014 by Linfiniti Consulting CC.
@@ -35,8 +36,8 @@ custom_logging.setup_logger(SENTRY_URL)
 
 # noinspection PyPep8Naming
 def classFactory(iface):  # pylint: disable=invalid-name
-    """load StreamFeatureExtractor class from file StreamFeatureExtractor."""
+    """load SGDiagramDownloader class from file SGDiagramDownloader."""
     # pylint: disable=relative-import
-    from stream_feature_extractor import StreamFeatureExtractor
+    from sg_diagram_downloader import SGDiagramDownloader
     # pylint: enable=relative-import
-    return StreamFeatureExtractor(iface)
+    return SGDiagramDownloader(iface)

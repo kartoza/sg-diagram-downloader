@@ -1,9 +1,10 @@
 #/***************************************************************************
-# StreamFeatureExtractor
+# SGDiagramDownloader
 #
-# A tool to extract features from a stream network.
+# A tool for QGIS that will download SG (South African Surveyor General)
+# diagrams.
 #							 -------------------
-#		begin				: 2014-05-07
+#		begin				: 2014-05-30
 #		copyright			: (C) 2014 by Linfiniti Consulting CC.
 #		email				: tim@linfiniti.com
 # ***************************************************************************/
@@ -25,14 +26,10 @@
 #Add iso code for any locales you want to support here (space separated)
 LOCALES = en af de id
 
-PLUGINNAME = StreamFeatureExtractor
+PLUGINNAME = SGDiagramDownloader
 
 PY_FILES = \
 	__init__.py \
-	stream_feature_extractor.py\
-	stream_options_dialog.py \
-	stream_help_dialog.py\
-	stream_utilities.py\
 	custom_logging.py
 
 EXTRAS = icon.png metadata.txt LICENSE README.md

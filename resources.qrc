@@ -1,5 +1,5 @@
 <RCC>
-    <qresource prefix="/plugins/StreamFeatureExtractor" >
+    <qresource prefix="/plugins/SGDiagramDownloader" >
         <file>icon.svg</file>
     </qresource>
 </RCC>

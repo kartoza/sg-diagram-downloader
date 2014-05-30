@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 """
 /***************************************************************************
- StreamFeatureExtractor
+ SGDiagramDownloader
                                  A QGIS plugin
- A tool to extract features from a stream network.
+A tool for QGIS that will download SG (South African Surveyor General)
+diagrams.
                               -------------------
-        begin                : 2014-05-07
+        begin                : 2014-05-30
         copyright            : (C) 2014 by Linfiniti Consulting CC.
         email                : tim@linfiniti.com
  ***************************************************************************/
@@ -55,7 +56,7 @@ MENU_RUN_LABEL = u'Extract from current layer'
 LOGGER = logging.getLogger('QGIS')
 
 
-class StreamFeatureExtractor:
+class SGDiagramDownloader:
     """QGIS Plugin Implementation."""
 
     def __init__(self, iface):
@@ -101,7 +102,7 @@ class StreamFeatureExtractor:
         self.menu = self.tr(MENU_GROUP_LABEL)
         # TODO: We are going to let the user set this up in a future iteration
         self.toolbar = self.iface.addToolBar(MENU_GROUP_LABEL)
-        self.toolbar.setObjectName(u'StreamFeatureExtractor')
+        self.toolbar.setObjectName(u'SGDiagramDownloader')
 
         # To enable/disable the run menu option
         self.iface.currentLayerChanged.connect(self.layer_changed)
@@ -120,7 +121,7 @@ class StreamFeatureExtractor:
         :rtype: QString
         """
         # noinspection PyTypeChecker,PyArgumentList,PyCallByClass
-        return QCoreApplication.translate('StreamFeatureExtractor', message)
+        return QCoreApplication.translate('SGDiagramDownloader', message)
 
     def add_action(
             self,
@@ -199,7 +200,7 @@ class StreamFeatureExtractor:
     def initGui(self):
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
         self.menu = u'Stream feature extractor'
-        icon_path = ':/plugins/StreamFeatureExtractor/icon.svg'
+        icon_path = ':/plugins/SGDiagramDownloader/icon.svg'
         self.run_action = self.add_action(
             icon_path,
             text=self.tr(u'Extract stream features from current layer',),

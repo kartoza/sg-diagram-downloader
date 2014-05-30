@@ -155,17 +155,12 @@ def setup_logger(sentry_url, log_file=None):
     #  * Set env var 'SENTRY' present (value can be anything)
     #  * Enable the 'plugins/use_sentry' QSettings option
     # before this will be enabled.
-    settings = QtCore.QSettings()
-    flag = settings.value('stream-feature-extractor/sentry-logging', False)
-    if 'SENTRY' in os.environ or flag:
-        client = Client(sentry_url)
-        sentry_handler = SentryHandler(client)
-        sentry_handler.setFormatter(formatter)
-        sentry_handler.setLevel(logging.ERROR)
-        if add_logging_handler_once(logger, sentry_handler):
-            logger.debug('Sentry logging enabled')
-    else:
-        logger.debug('Sentry logging disabled')
+    client = Client(sentry_url)
+    sentry_handler = SentryHandler(client)
+    sentry_handler.setFormatter(formatter)
+    sentry_handler.setLevel(logging.ERROR)
+    if add_logging_handler_once(logger, sentry_handler):
+        logger.debug('Sentry logging enabled')
     # Set formatters
     file_handler.setFormatter(formatter)
     console_handler.setFormatter(formatter)
