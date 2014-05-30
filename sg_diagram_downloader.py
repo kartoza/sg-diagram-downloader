@@ -47,12 +47,10 @@ from qgis.gui import QgsMessageBar
 # Initialize Qt resources from file resources.py
 import resources_rc
 # Import the code for the dialog
-from stream_utilities import is_line_layer, identify_features
-from stream_options_dialog import OptionsDialog
-from stream_help_dialog import HelpDialog
+from download_dialog import DownloadDialog
 
-MENU_GROUP_LABEL = u'Stream feature extractor'
-MENU_RUN_LABEL = u'Extract from current layer'
+MENU_GROUP_LABEL = u'SG Diagram Downloader'
+MENU_RUN_LABEL = u'Download Surveyor General Diagram'
 LOGGER = logging.getLogger('QGIS')
 
 
@@ -76,25 +74,8 @@ class SGDiagramDownloader:
         self.iface = iface
         # initialize plugin directory
         self.plugin_dir = os.path.dirname(__file__)
-        # initialize locale
-        self.locale = QSettings().value("locale/userLocale")[0:2]
-        locale_path = os.path.join(
-            self.plugin_dir,
-            'i18n',
-            '{}.qm'.format(self.locale))
-
-        if os.path.exists(locale_path):
-            self.translator = QTranslator()
-            self.translator.load(locale_path)
-
-            if qVersion() > '4.3.3':
-                QCoreApplication.installTranslator(self.translator)
-
         # Declare instance attributes
-        self.run_action = None
-        self.options_action = None
-        self.help_action = None
-        self.message_bar = None
+        self.download_dialog = None
 
         # Declare instance attributes
 
@@ -104,11 +85,7 @@ class SGDiagramDownloader:
         self.toolbar = self.iface.addToolBar(MENU_GROUP_LABEL)
         self.toolbar.setObjectName(u'SGDiagramDownloader')
 
-        # To enable/disable the run menu option
-        self.iface.currentLayerChanged.connect(self.layer_changed)
-        LOGGER.debug('Stream feature extractor initialised')
-
-    # noinspection PyMethodMayBeStatic
+        # noinspection PyMethodMayBeStatic
     def tr(self, message):
         """Get the translation for a string using Qt translation API.
 
@@ -134,7 +111,7 @@ class SGDiagramDownloader:
             status_tip=None,
             whats_this=None,
             parent=None):
-        """Add a toolbar icon to the InaSAFE toolbar.
+        """Add a toolbar icon to the Surveyor Diagram toolbar.
 
         :param icon_path: Path to the icon for this action. Can be a resource
             path (e.g. ':/plugins/foo/bar.png') or a normal file system path.
@@ -199,33 +176,15 @@ class SGDiagramDownloader:
     # noinspection PyPep8Naming
     def initGui(self):
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
-        self.menu = u'Stream feature extractor'
+        self.menu = u'Surveyor General Diagram Downloader'
         icon_path = ':/plugins/SGDiagramDownloader/icon.svg'
-        self.run_action = self.add_action(
+        self.download_dialog = self.add_action(
             icon_path,
-            text=self.tr(u'Extract stream features from current layer',),
-            callback=self.run,
+            text=self.tr(u'Download Surveyor General Diagram',),
+            callback=self.show_download_dialog,
             parent=self.iface.mainWindow(),
+            add_to_toolbar=True,
             add_to_menu=True)
-
-        self.options_action = self.add_action(
-            icon_path,
-            text=self.tr(u'Options ...', ),
-            callback=self.show_options,
-            parent=self.iface.mainWindow(),
-            add_to_menu=True,
-            add_to_toolbar=False)
-
-        self.help_action = self.add_action(
-            icon_path,
-            text=self.tr(u'Help ...', ),
-            callback=self.show_help,
-            parent=self.iface.mainWindow(),
-            add_to_menu=True,
-            add_to_toolbar=False)
-
-        if self.iface.activeLayer() is not None:
-            self.layer_changed(self.iface.activeLayer())
 
     def unload(self):
         """Removes the plugin menu item and icon from QGIS GUI."""
@@ -235,125 +194,8 @@ class SGDiagramDownloader:
                 action)
             self.iface.removeToolBarIcon(action)
 
-    def _load_nodes_with_style(self, nodes):
-        """Set the style for the layer (must be before addMapLayer call).
-
-        Try to get one for the current locale, and fall back to default
-        if none available. To add new locales. clone styles/nodes.qml and
-        rename it nodes-<locale>.qml.
-
-        :param nodes: An extracted nodes layer.
-        :type nodes: QgsVectorLayer, QgsMapLayer
-        """
-        style_path = os.path.join(
-            os.path.dirname(__file__), 'styles/nodes-%s.qml' % self.locale)
-        if not os.path.exists(style_path):
-            style_path = os.path.join(
-                os.path.dirname(__file__), 'styles/nodes.qml')
-        nodes.loadNamedStyle(style_path)
-        QgsMapLayerRegistry.instance().addMapLayer(nodes)
-
-    def run(self):
-        """Run method that performs all the real work."""
-        message_bar = self.iface.messageBar().createMessage(
-            self.tr('Extracting stream features'),
-            self.tr('Please stand by while calculation is in progress.'),
-            self.iface.mainWindow())
-
-        progress_bar = QProgressBar()
-        progress_bar.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-        # Need to implement a separate worker thread if we want cancel
-        #cancel_button = QPushButton()
-        #cancel_button.setText(self.tr('Cancel'))
-        #cancel_button.clicked.connect(worker.kill)
-        message_bar.layout().addWidget(progress_bar)
-        #message_bar.layout().addWidget(cancel_button)
-        self.iface.messageBar().pushWidget(
-            message_bar, self.iface.messageBar().INFO)
-        self.message_bar = message_bar
-
-        def progress_callback(current, maximum, message=None):
-            """GUI based callback implementation for showing progress.
-
-            :param current: Current progress.
-            :type current: int
-
-            :param maximum: Maximum range (point at which task is complete.
-            :type maximum: int
-
-            :param message: Optional message to display in the progress bar
-            :type message: str, QString
-            """
-            if message is not None:
-                message_bar.setText(message)
-            if progress_bar is not None:
-                progress_bar.setMaximum(maximum)
-                progress_bar.setValue(current)
-
-        settings = QSettings()
-        distance = settings.value(
-            'stream-feature-extractor/search-distance', 0, type=float)
-        load_intermediate_layer = settings.value(
-            'stream-feature-extractor/load-intermediate-layer',
-            False,
-            type=bool)
-        # noinspection PyBroadException
-        try:
-            intermediate_layer, nodes = identify_features(
-                self.iface.activeLayer(),
-                threshold=distance,
-                callback=progress_callback)
-        except Exception:
-            LOGGER.exception('A failure occurred calling identify_features.')
-            self.iface.messageBar().popWidget(message_bar)
-            self.iface.messageBar().pushMessage(
-                self.tr('Feature extraction error.'),
-                self.tr('Please check logs for details.'),
-                level=QgsMessageBar.CRITICAL,
-                duration=5)
-            return
-
-        # Get rid of the message bar again.
-        self.iface.messageBar().popWidget(message_bar)
-
-        self._load_nodes_with_style(nodes)
-
-        if load_intermediate_layer:
-            QgsMapLayerRegistry.instance().addMapLayer(intermediate_layer)
-
-        #QgsMapLayerRegistry.instance().addMapLayers([layer])
-        self.iface.messageBar().pushMessage(
-            self.tr('Extraction completed.'),
-            self.tr('Use "Layer->Save as" to save the results permanently.'),
-            level=QgsMessageBar.INFO,
-            duration=10)
-
     @staticmethod
-    def show_help():
-        """Display application help to the user."""
-        help_file = 'file:///%s/help/index.html' % os.path.dirname(__file__)
-        LOGGER.debug('Opening this help file:\n%s' % help_file)
-        results_dialog = HelpDialog()
-        results_dialog.web_view.load(QUrl(help_file))
-        results_dialog.exec_()
-
-    @staticmethod
-    def show_options():
-        """Show dialog with plugin options."""
-        # show the dialog
-        dialog = OptionsDialog()
-        result = dialog.exec_()
-        # See if OK was pressed
-        if result:
-            pass
-        else:
-            pass
-
-    def layer_changed(self, layer):
-        """Enable or disable extract features action when active layer changes.
-
-        :param layer: The layer that is now active.
-        :type layer: QgsMapLayer
-        """
-        flag = is_line_layer(layer)
-        self.run_action.setEnabled(flag)
+    def show_download_dialog():
+        """Show the minimum needs dialog."""
+        dialog = DownloadDialog()
+        dialog.exec_()  # modal

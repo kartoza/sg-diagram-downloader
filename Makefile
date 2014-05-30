@@ -30,15 +30,16 @@ PLUGINNAME = SGDiagramDownloader
 
 PY_FILES = \
 	__init__.py \
-	custom_logging.py
+	custom_logging.py \
+	sg_diagram_downloader.py \
+	download_dialog.py
 
 EXTRAS = icon.png metadata.txt LICENSE README.md
 
 STYLES = styles
 
 UI_FILES = \
-	stream_options_dialog_base.ui\
-	stream_help_dialog_base.ui
+	download_dialog_base.ui
 
 COMPILED_RESOURCE_FILES = resources_rc.py
 
@@ -80,7 +81,7 @@ test_code: compile transcompile
 		--cover-package= . \
 		3>&1 1>&2 2>&3 3>&- || true
 
-deploy: compile doc transcompile compile_qml_styles
+deploy: compile doc transcompile 
 	@echo
 	@echo "------------------------------------------"
 	@echo "Deploying plugin to your .qgis2 directory."
@@ -95,7 +96,6 @@ deploy: compile doc transcompile compile_qml_styles
 	mkdir -p $(HOME)/$(QGISDIR)/python/plugins/$(PLUGINNAME)/i18n
 	cp -vfr i18n/*.qm $(HOME)/$(QGISDIR)/python/plugins/$(PLUGINNAME)/i18n/
 	cp -vfr $(HELP) $(HOME)/$(QGISDIR)/python/plugins/$(PLUGINNAME)/help
-	cp -vfr $(STYLES) $(HOME)/$(QGISDIR)/python/plugins/$(PLUGINNAME)/styles
 	cp -vfr $(THIRD_PARTY) $(HOME)/$(QGISDIR)/python/plugins/$(PLUGINNAME)/
 
 debugdeploy: deploy
@@ -221,9 +221,3 @@ pep8:
 	@echo "-----------"
 	@pep8 --repeat --ignore=E203,E121,E122,E123,E124,E125,E126,E127,E128 --exclude conf.py,pydev,resources_rc.py,third_party . || true
 
-compile_qml_styles:
-	@echo
-	@echo "-----------------------------------------"
-	@echo "Compile qml styles for supported locales."
-	@echo "-----------------------------------------"
-	@PYTHONPATH=. python scripts/translate_style.py $(LOCALES)
