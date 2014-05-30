@@ -28,8 +28,8 @@ import custom_logging  # pylint: disable=relative-import
 
 
 SENTRY_URL = (
-    'http://b257c02328384628a50de20d257cf06e:'
-    'ab515d8c88b746d484351321b0111b44@sentry.linfiniti.com/10')
+    ' http://9a83c384bc0f476a9ba80958704383a8:'
+    'df90821aa62e42868bbe0b40a17d24d5@sentry.linfiniti.com/11')
 custom_logging.setup_logger(SENTRY_URL)
 
 
