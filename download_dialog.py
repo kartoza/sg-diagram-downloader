@@ -20,6 +20,11 @@ DownloadDialog
  ***************************************************************************/
 """
 
+__author__ = 'ismail@linfiniti.com'
+__revision__ = '$Format:%H$'
+__date__ = '30/05/2014'
+__copyright__ = ''
+
 import os
 
 # Import the PyQt and QGIS libraries
