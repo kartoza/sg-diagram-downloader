@@ -32,7 +32,8 @@ PY_FILES = \
 	__init__.py \
 	custom_logging.py \
 	sg_diagram_downloader.py \
-	download_dialog.py
+	download_dialog.py \
+	sg_download_utilities.py
 
 EXTRAS = icon.png metadata.txt LICENSE README.md
 
@@ -98,7 +99,7 @@ deploy: compile doc transcompile
 	cp -vfr $(HELP) $(HOME)/$(QGISDIR)/python/plugins/$(PLUGINNAME)/help
 	cp -vfr $(THIRD_PARTY) $(HOME)/$(QGISDIR)/python/plugins/$(PLUGINNAME)/
 
-fastdeploy: compile 	
+fastdeploy: derase compile 	
 	@echo
 	@echo "------------------------------------------"
 	@echo "Fast Deploying plugin to your .qgis2 directory."

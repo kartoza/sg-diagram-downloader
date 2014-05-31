@@ -16,7 +16,7 @@ __copyright__ = ''
 import unittest
 import os
 from test.utilities_for_testing import get_temp_shapefile_layer
-from utilities import get_sg_codes
+from sg_download_utilities import get_sg_codes
 
 DATA_TEST_DIR = os.path.join(os.path.dirname(__file__),
                              '../sg-diagram-downloader/data')

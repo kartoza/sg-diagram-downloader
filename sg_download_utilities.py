@@ -68,10 +68,24 @@ def construct_url(sg_code=None):
 
 
 def download_diagram(sg_code, output_directory):
-    """Download
-    """
-    pass
+    """Download sg diagram using sg_code and put it under output_directory.
 
+    :param sg_code: Surveyor General code.
+    :type sg_code: str
+
+    :param output_directory: Directory to put the diagram.
+    :type output_directory: str
+    """
+    download_page = construct_url(sg_code)
+    download_link = download_page
+    import pycurl
+    c = pycurl.Curl()
+    c.setopt(pycurl.CONNECTTIMEOUT, 3)
+    c.setopt(pycurl.TIMEOUT, 3)
+    c.setopt(pycurl.NOSIGNAL, 1)
+    c.setopt(pycurl.URL, download_link)
+    c.setopt(pycurl.HTTPGET, 1)
+    c.perform()
 
 
 def get_spatial_index(data_provider):
@@ -82,6 +96,7 @@ def get_spatial_index(data_provider):
     while qgs_features.nextFeature(qgs_feature):
         index.insertFeature(qgs_feature)
     return index
+
 
 def get_sg_codes(target_layer, diagram_layer, sg_code_field):
     """Obtains sg codes from target layer.
@@ -129,3 +144,25 @@ def get_sg_codes(target_layer, diagram_layer, sg_code_field):
 
     return set(sg_codes)
 
+
+def download_sg_diagrams(
+        target_layer, diagram_layer, sg_code_field, output_directory):
+    """Downloads all SG Diagrams.
+
+    :param target_layer: The target layer.
+    :type target_layer: QgsVectorLayer
+
+    :param diagram_layer: Vector layer that has sg code in its field.
+    :type diagram_layer: QgsVectorLayer
+
+    :param sg_code_field: Name of the field that contains sg code
+    :type sg_code_field: str
+
+    :param output_directory: Directory to put the diagram.
+    :type output_directory: str
+    """
+
+    sg_codes = get_sg_codes(target_layer, diagram_layer, sg_code_field)
+    for sg_code in sg_codes:
+        print sg_code
+        # download_diagram(sg_code, output_directory)

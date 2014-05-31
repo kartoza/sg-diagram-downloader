@@ -51,6 +51,7 @@ from PyQt4.QtCore import pyqtSignature
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'download_dialog_base.ui'))
 
+from sg_download_utilities import download_sg_diagrams
 
 class DownloadDialog(QtGui.QDialog, FORM_CLASS):
     def __init__(self, parent=None):
@@ -112,4 +113,22 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
 
     def accept(self):
         """Event handler for when ok is pressed."""
+
+        index = self.target_layer.currentIndex()
+        target_layer_id = self.target_layer.itemData(
+            index, QtCore.Qt.UserRole)
+        # noinspection PyArgumentList
+        target_layer = QgsMapLayerRegistry.instance().mapLayer(target_layer_id)
+
+        index = self.diagram_layer.currentIndex()
+        diagram_layer_id = self.diagram_layer.itemData(
+            index, QtCore.Qt.UserRole)
+        # noinspection PyArgumentList
+        diagram_layer = QgsMapLayerRegistry.instance().mapLayer(diagram_layer_id)
+        sg_code_field = self.sg_code_field.currentText()
+        output_directory = self.output_directory.text()
+
+        download_sg_diagrams(
+            target_layer, diagram_layer, sg_code_field, output_directory)
+
         self.close()
