@@ -25,6 +25,8 @@ __revision__ = '$Format:%H$'
 __date__ = '30/05/2014'
 __copyright__ = ''
 
+import  os
+
 from qgis.core import (
     QGis,
     QgsField,
@@ -67,7 +69,39 @@ def construct_url(sg_code=None):
     return url
 
 
-def download_diagram(sg_code, output_directory):
+def download_from_url(url, output_directory, file_name='random.tiff'):
+    """Download file from a url and put it under output_directory.
+
+    :param url: Url that gives response.
+    :type url: str
+
+    :param output_directory: Directory to put the diagram.
+    :type output_directory: str
+    """
+    file_name = os.path.join(output_directory, file_name)
+    fp = open(file_name, 'wb')
+    import pycurl
+    curl = pycurl.Curl()
+    # return transfer
+    curl.setopt(pycurl.URL, url)
+    curl.setopt(pycurl.CONNECTTIMEOUT, 60)
+    # curl.setopt(pycurl.USERAGENT, False)
+    curl.setopt(pycurl.FOLLOWLOCATION, True)
+    curl.setopt(pycurl.NOBODY, False)
+
+    curl.setopt(pycurl.WRITEDATA, fp)
+    curl.perform()
+
+    print curl.getinfo(pycurl.HTTP_CODE), curl.getinfo(pycurl.EFFECTIVE_URL)
+    print curl.getinfo(pycurl.CONTENT_TYPE)
+    print curl.getinfo(pycurl.RESPONSE_CODE)
+    print dir(curl)
+    curl.close()
+    fp.close()
+    print file_name
+
+
+def download_sg_diagram(sg_code, output_directory):
     """Download sg diagram using sg_code and put it under output_directory.
 
     :param sg_code: Surveyor General code.
@@ -78,14 +112,8 @@ def download_diagram(sg_code, output_directory):
     """
     download_page = construct_url(sg_code)
     download_link = download_page
-    import pycurl
-    c = pycurl.Curl()
-    c.setopt(pycurl.CONNECTTIMEOUT, 3)
-    c.setopt(pycurl.TIMEOUT, 3)
-    c.setopt(pycurl.NOSIGNAL, 1)
-    c.setopt(pycurl.URL, download_link)
-    c.setopt(pycurl.HTTPGET, 1)
-    c.perform()
+    output_directory = os.path.join(output_directory, sg_code)
+    download_from_url(download_link, output_directory)
 
 
 def get_spatial_index(data_provider):
@@ -165,4 +193,4 @@ def download_sg_diagrams(
     sg_codes = get_sg_codes(target_layer, diagram_layer, sg_code_field)
     for sg_code in sg_codes:
         print sg_code
-        # download_diagram(sg_code, output_directory)
+        # download_sg_diagram(sg_code, output_directory)
