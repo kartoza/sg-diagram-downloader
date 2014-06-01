@@ -15,7 +15,8 @@ __copyright__ = ''
 
 import unittest
 import os
-from test.utilities_for_testing import get_temp_shapefile_layer, TEMP_DIR
+from test.utilities_for_testing import (
+    get_temp_shapefile_layer, TEMP_DIR, get_random_string)
 from sg_download_utilities import get_sg_codes, download_from_url
 
 DATA_TEST_DIR = os.path.join(os.path.dirname(__file__), 'data')
@@ -41,11 +42,15 @@ class TestUtilities(unittest.TestCase):
     def test_download_from_url(self):
         """Test for download from url."""
         url = (
-            'http://csg.dla.gov.za/esio/viewTIFF?furl=/images/9a/1018ML01.TIF')
-        # url = 'http://ismailsunni.files.wordpress.com/2014/05/2014-05-04-08-10-51.jpg'
+            'http://csg.dla.gov.za/esio/viewTIFF?'
+            'furl=/images/9a/1018ML01.TIF&office=SGCTN')
         output_directory = TEMP_DIR
-        # download_from_url(url, output_directory, 'random.jpeg')
-        download_from_url(url, output_directory, 'random.TIF')
+        filename = get_random_string() + '.TIF'
+        download_from_url(url, output_directory, filename)
+        file_path = os.path.join(output_directory, filename)
+        message = 'File should be existed in %s.' % file_path
+        print os.path.exists(file_path)
+        self.assertTrue(os.path.exists(file_path), message)
 
     def test_get_sg_codes(self):
         """Test for get_sg_codes."""

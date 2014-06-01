@@ -40,6 +40,8 @@ from qgis.core import (
     QgsSpatialIndex,
     QgsMapLayerRegistry)
 
+import pycurl
+
 
 def construct_url(sg_code=None):
     """Construct url to download sg diagram.
@@ -80,25 +82,17 @@ def download_from_url(url, output_directory, file_name='random.tiff'):
     """
     file_name = os.path.join(output_directory, file_name)
     fp = open(file_name, 'wb')
-    import pycurl
     curl = pycurl.Curl()
-    # return transfer
     curl.setopt(pycurl.URL, url)
     curl.setopt(pycurl.CONNECTTIMEOUT, 60)
-    # curl.setopt(pycurl.USERAGENT, False)
     curl.setopt(pycurl.FOLLOWLOCATION, True)
     curl.setopt(pycurl.NOBODY, False)
 
     curl.setopt(pycurl.WRITEDATA, fp)
     curl.perform()
 
-    print curl.getinfo(pycurl.HTTP_CODE), curl.getinfo(pycurl.EFFECTIVE_URL)
-    print curl.getinfo(pycurl.CONTENT_TYPE)
-    print curl.getinfo(pycurl.RESPONSE_CODE)
-    print dir(curl)
     curl.close()
     fp.close()
-    print file_name
 
 
 def download_sg_diagram(sg_code, output_directory):
