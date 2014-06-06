@@ -19,7 +19,8 @@ from test.utilities_for_testing import (
     get_temp_shapefile_layer, TEMP_DIR, get_random_string)
 from sg_download_utilities import get_sg_codes, download_from_url
 
-DATA_TEST_DIR = os.path.join(os.path.dirname(__file__), 'data')
+DATA_TEST_DIR = os.path.join(os.path.dirname(__file__), 'test', 'data')
+DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 
 from test.utilities_for_testing import get_qgis_app
 
@@ -28,7 +29,7 @@ QGIS_APP = get_qgis_app()
 erf_layer = os.path.join(DATA_TEST_DIR, 'erf.shp')
 farm_portion_layer = os.path.join(DATA_TEST_DIR, 'farm_portion.shp')
 parent_farm_layer = os.path.join(DATA_TEST_DIR, 'parent_farm.shp')
-provinces_layer = os.path.join(DATA_TEST_DIR, 'provinces.shp')
+provinces_layer = os.path.join(DATA_DIR, 'provinces.shp')
 purchaseplan_layer = os.path.join(DATA_TEST_DIR, 'purchaseplan.shp')
 
 class TestUtilities(unittest.TestCase):
