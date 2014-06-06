@@ -201,6 +201,6 @@ class SGDiagramDownloader:
 
     @staticmethod
     def show_download_dialog():
-        """Show the minimum needs dialog."""
+        """Show the download dialog."""
         dialog = DownloadDialog()
         dialog.exec_()  # modal

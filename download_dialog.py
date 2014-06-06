@@ -147,7 +147,8 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
         diagram_layer_id = self.combo_box_diagram_layer.itemData(
             index, QtCore.Qt.UserRole)
         # noinspection PyArgumentList
-        diagram_layer = QgsMapLayerRegistry.instance().mapLayer(diagram_layer_id)
+        diagram_layer = QgsMapLayerRegistry.instance().mapLayer(
+            diagram_layer_id)
         sg_code_field = self.combo_box_sg_code_field.currentText()
         output_directory = self.output_directory.text()
 

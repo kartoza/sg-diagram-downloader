@@ -17,7 +17,11 @@ import unittest
 import os
 from test.utilities_for_testing import (
     get_temp_shapefile_layer, TEMP_DIR, get_random_string)
-from sg_download_utilities import get_sg_codes, download_from_url
+from sg_download_utilities import (
+    get_sg_codes,
+    download_from_url,
+    get_office)
+
 
 DATA_TEST_DIR = os.path.join(os.path.dirname(__file__), 'test', 'data')
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
@@ -31,6 +35,7 @@ farm_portion_layer = os.path.join(DATA_TEST_DIR, 'farm_portion.shp')
 parent_farm_layer = os.path.join(DATA_TEST_DIR, 'parent_farm.shp')
 provinces_layer = os.path.join(DATA_DIR, 'provinces.shp')
 purchaseplan_layer = os.path.join(DATA_TEST_DIR, 'purchaseplan.shp')
+
 
 class TestUtilities(unittest.TestCase):
     def test_data(self):
@@ -60,13 +65,31 @@ class TestUtilities(unittest.TestCase):
         diagram_layer = get_temp_shapefile_layer(
             parent_farm_layer, 'parent farm')
         sg_code_field = 'id'
+        sa_provinces_layer = get_temp_shapefile_layer(
+            provinces_layer, 'provinces')
 
         target_layer.setSelectedFeatures([7])
-        sg_codes = get_sg_codes(target_layer, diagram_layer, sg_code_field)
+        sg_codes = get_sg_codes(
+            target_layer, diagram_layer, sg_code_field, sa_provinces_layer)
         message = (
             'The number of sg codes extracted should be 33. I got %s' % len(
                 sg_codes))
         self.assertEqual(31, len(sg_codes), message)
+
+    def test_get_office(self):
+        """Test for get_office function."""
+        province = 'Eastern Cape'
+        region_code = 'C0020000'
+
+        expected_result = 'SGELN', '8'
+        result = get_office(region_code, province)
+        message = 'Expected %s got %s' % (expected_result, result)
+        self.assertEqual(expected_result, result, message)
+
+        province = 'Eastern Cape XXX'
+        region_code = 'C0020000'
+        message = 'Should be None'
+        self.assertIsNone(get_office(region_code, province), message)
 
 if __name__ == '__main__':
     unittest.main()

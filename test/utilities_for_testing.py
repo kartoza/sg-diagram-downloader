@@ -21,6 +21,7 @@ from qgis.core import QgsVectorLayer
 TEMP_DIR = os.path.join(
     os.path.expanduser('~'), 'temp', 'sg-diagram-extractor')
 
+
 def get_qgis_app():
     """ Start one QGIS application to test against.
 
@@ -70,8 +71,6 @@ def get_qgis_app():
     return QGIS_APP, CANVAS, IFACE, PARENT
 
 
-
-
 def get_random_string(length=7):
     """Return random string with length=length.
 
@@ -98,6 +97,7 @@ def remove_temp_layer(shapefile_path):
         if os.path.exists(shapefile_path[:3] + extension):
             os.remove(shapefile_path[:3] + extension)
 
+
 def get_shapefile_layer(shapefile_path, title):
     """Return a layer of shapefile from shapefile_path.
 
@@ -113,6 +113,7 @@ def get_shapefile_layer(shapefile_path, title):
     """
     layer = QgsVectorLayer(shapefile_path, title, 'ogr')
     return layer
+
 
 def copy_temp_layer(shapefile_path, temp_dir=TEMP_DIR):
     """Copy shapefile_path to temp directory and weird name.

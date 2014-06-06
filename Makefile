@@ -68,7 +68,7 @@ compile: $(COMPILED_RESOURCE_FILES)
 
 test: test_code pep8 pylint
 
-test_code: compile transcompile
+test_code: compile # transcompile
 	@echo
 	@echo "----------------------"
 	@echo "Regression Test Suite"
