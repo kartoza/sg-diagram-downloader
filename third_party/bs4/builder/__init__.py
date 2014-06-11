@@ -289,6 +289,7 @@ def register_treebuilders_from(module):
     """Copy TreeBuilders from the given module into this module."""
     # I'm fairly sure this is not the best way to do this.
     this_module = sys.modules['bs4.builder']
+    print this_module, 'this module'
     for name in module.__all__:
         obj = getattr(module, name)
 

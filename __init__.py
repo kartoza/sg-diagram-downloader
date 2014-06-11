@@ -24,6 +24,12 @@ diagrams.
 # Import the PyQt and QGIS libraries
 # this import required to enable PyQt API v2
 import qgis  # pylint: disable=W0611
+import os
+import sys
+third_party_dir = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), 'third_party'))
+if third_party_dir not in sys.path:
+    sys.path.append(third_party_dir)
 
 import custom_logging  # pylint: disable=relative-import
 
