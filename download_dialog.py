@@ -65,7 +65,6 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
         # #widgets-and-dialogs-with-auto-connect
         QtGui.QDialog.__init__(self, parent)
         self.setupUi(self)
-        self.populate_combo_box_urban_or_rural()
         self.populate_combo_box()
         self.province_layer = QgsVectorLayer(
             'data/provinces.shp', 'provinces', 'ogr')
@@ -91,11 +90,6 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
 
         self.set_tool_tip()
 
-    def populate_combo_box_urban_or_rural(self):
-        """Populate the combo box rural urban with rural and urban"""
-        self.combo_box_urban_or_rural.insertItem(0, 'rural', 'rural')
-        self.combo_box_urban_or_rural.insertItem(1, 'urban', 'urban')
-
     # noinspection PyPep8Naming
     @pyqtSignature('int')
     def on_combo_box_parcel_layer_currentIndexChanged(self, theIndex=None):
@@ -114,14 +108,6 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
             self.combo_box_sg_code_field.insertItem(0, field, field)
 
         diagram_layer_name = self.combo_box_parcel_layer.currentText()
-
-        # noinspection PyArgumentList
-        if 'erf' in diagram_layer_name:
-            self.combo_box_urban_or_rural.setCurrentIndex(1)
-        elif 'farm' in diagram_layer_name:
-            self.combo_box_urban_or_rural.setCurrentIndex(0)
-        else:
-            self.combo_box_urban_or_rural.setCurrentIndex(0)
 
     @pyqtSignature('')  # prevents actions being handled twice
     def on_output_directory_button_clicked(self):
@@ -143,8 +129,6 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
         # noinspection PyArgumentList
         target_layer = QgsMapLayerRegistry.instance().mapLayer(target_layer_id)
 
-        urban_rural = self.combo_box_urban_or_rural.currentText()
-
         index = self.combo_box_parcel_layer.currentIndex()
         diagram_layer_id = self.combo_box_parcel_layer.itemData(
             index, QtCore.Qt.UserRole)
@@ -158,11 +142,10 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
 
         download_sg_diagrams(
             target_layer,
-            urban_rural,
             diagram_layer,
             sg_code_field,
             output_directory,
-            self.province_layer,)
+            self.province_layer)
 
         self.close()
 

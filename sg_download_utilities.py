@@ -80,8 +80,9 @@ def get_office(region_code=None, province=None):
         print os.path.exists(REGIONAL_OFFICES_SQLITE3)
         db_connection = sqlite3.connect(REGIONAL_OFFICES_SQLITE3)
         db_cursor = db_connection.cursor()
-        query = 'SELECT office, office_no FROM regional_office WHERE '
-        query += "province='%s' AND region_code='%s'" % (province, region_code)
+        query = (
+            "SELECT office, office_no, typology FROM regional_office WHERE "
+            "province='%s' AND region_code='%s'" % (province, region_code))
 
         print 'Executing %s' % query
         db_cursor.execute(query)
@@ -96,7 +97,7 @@ def get_office(region_code=None, province=None):
         print 'Database error', e
 
 
-def construct_url(sg_code=None, province=None, urban_rural='urban'):
+def construct_url(sg_code=None, province=None):
     """Construct url to download sg diagram.
 
     :param sg_code: SG code.
@@ -105,13 +106,10 @@ def construct_url(sg_code=None, province=None, urban_rural='urban'):
     :param province: province name.
     :type province: str
 
-    :param urban_rural: Urban or rural.
-    :type urban_rural: str
-
     :returns: URL to download sg diagram.
     :rtype: str
     """
-    print 'constructing url for %s %s %s' % (sg_code, province, urban_rural)
+    print 'constructing url for %s %s' % (sg_code, province)
     if sg_code is None or province is None:
         return (
             'http://csg.dla.gov.za/esio/listdocument.jsp?regDivision=C0160013'
@@ -120,7 +118,7 @@ def construct_url(sg_code=None, province=None, urban_rural='urban'):
     base_url = 'http://csg.dla.gov.za/esio/listdocument.jsp?'
     reg_division = sg_code[:8]
 
-    office, office_number = get_office(reg_division, province)
+    office, office_number, typology = get_office(reg_division, province)
 
     erf = sg_code[8:16]
     portion = sg_code[16:]
@@ -306,7 +304,6 @@ def get_sg_codes_and_provinces(
 
 def download_sg_diagrams(
         target_layer,
-        urban_rural,
         diagram_layer,
         sg_code_field,
         output_directory,
@@ -315,9 +312,6 @@ def download_sg_diagrams(
 
     :param target_layer: The target layer.
     :type target_layer: QgsVectorLayer
-
-    :param urban_rural: Urban or rural type of target layer.
-    :type urban_rural: str
 
     :param diagram_layer: Vector layer that has sg code in its field.
     :type diagram_layer: QgsVectorLayer
@@ -338,7 +332,7 @@ def download_sg_diagrams(
         print sg_code_and_province
         sg_code = sg_code_and_province[0]
         province = sg_code_and_province[1]
-        download_sg_diagram(sg_code, province, output_directory, urban_rural)
+        download_sg_diagram(sg_code, province, output_directory)
 
 if __name__ == '__main__':
     print PROVINCES_LAYER_PATH

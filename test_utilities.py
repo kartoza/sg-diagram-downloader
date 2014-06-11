@@ -83,7 +83,7 @@ class TestUtilities(unittest.TestCase):
         province = 'Eastern Cape'
         region_code = 'C0020000'
 
-        expected_result = 'SGELN', '8'
+        expected_result = 'SGELN', '8', 'Rural'
         result = get_office(region_code, province)
         message = 'Expected %s got %s' % (expected_result, result)
         self.assertEqual(expected_result, result, message)
