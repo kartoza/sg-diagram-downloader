@@ -84,10 +84,12 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
                 text = layer.name()
                 data = str(layer.id())
                 self.combo_box_target_layer.insertItem(0, text, data)
-                self.combo_box_diagram_layer.insertItem(0, text, data)
+                self.combo_box_parcel_layer.insertItem(0, text, data)
         if found_flag:
             self.combo_box_target_layer.setCurrentIndex(0)
-            self.combo_box_diagram_layer.setCurrentIndex(0)
+            self.combo_box_parcel_layer.setCurrentIndex(0)
+
+        self.set_tool_tip()
 
     def populate_combo_box_urban_or_rural(self):
         """Populate the combo box rural urban with rural and urban"""
@@ -96,13 +98,13 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
 
     # noinspection PyPep8Naming
     @pyqtSignature('int')
-    def on_combo_box_diagram_layer_currentIndexChanged(self, theIndex=None):
+    def on_combo_box_parcel_layer_currentIndexChanged(self, theIndex=None):
         """Automatic slot executed when the layer is changed to update fields.
 
         :param theIndex: Passed by the signal that triggers this slot.
         :type theIndex: int
         """
-        layer_id = self.combo_box_diagram_layer.itemData(
+        layer_id = self.combo_box_parcel_layer.itemData(
             theIndex, QtCore.Qt.UserRole)
         # noinspection PyArgumentList
         layer = QgsMapLayerRegistry.instance().mapLayer(layer_id)
@@ -111,7 +113,7 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
         for field in fields:
             self.combo_box_sg_code_field.insertItem(0, field, field)
 
-        diagram_layer_name = self.combo_box_diagram_layer.currentText()
+        diagram_layer_name = self.combo_box_parcel_layer.currentText()
 
         # noinspection PyArgumentList
         if 'erf' in diagram_layer_name:
@@ -143,8 +145,8 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
 
         urban_rural = self.combo_box_urban_or_rural.currentText()
 
-        index = self.combo_box_diagram_layer.currentIndex()
-        diagram_layer_id = self.combo_box_diagram_layer.itemData(
+        index = self.combo_box_parcel_layer.currentIndex()
+        diagram_layer_id = self.combo_box_parcel_layer.itemData(
             index, QtCore.Qt.UserRole)
         # noinspection PyArgumentList
         diagram_layer = QgsMapLayerRegistry.instance().mapLayer(
@@ -163,3 +165,17 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
             self.province_layer,)
 
         self.close()
+
+    def set_tool_tip(self):
+        """Set tool tip as helper text for some objects."""
+
+        target_layer_tooltip = (
+            'Select at least one feature in the layer you want to use to '
+            'select parcels')
+        parcel_layer_tooltip = 'Any layer with 21-digit SG code field'
+
+        self.label_target_layer.setToolTip(target_layer_tooltip)
+        self.label_parcel_layer.setToolTip(parcel_layer_tooltip)
+
+        self.combo_box_target_layer.setToolTip(target_layer_tooltip)
+        self.combo_box_parcel_layer.setToolTip(parcel_layer_tooltip)
