@@ -100,8 +100,9 @@ def construct_url(sg_code=None, province=None):
 
     base_url = 'http://csg.dla.gov.za/esio/listdocument.jsp?'
     reg_division = sg_code[:8]
-    office = ''
-    office_number = ''
+
+    office, office_number = get_office(reg_division, province)
+
     erf = sg_code[8:16]
     portion = sg_code[16:]
     url = base_url + 'regDivision=' + reg_division
