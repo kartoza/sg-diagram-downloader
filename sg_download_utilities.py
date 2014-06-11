@@ -42,6 +42,19 @@ from qgis.core import (
 
 import pycurl
 import sqlite3
+import urllib
+import sys
+from urlparse import urlparse
+
+
+third_party_path = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), 'third_party'))
+if third_party_path not in sys.path:
+    sys.path.append(third_party_path)
+# pylint: disable=F0401
+# noinspection PyUnresolvedReferences
+from bs4 import BeautifulSoup
+# pylint: enable=F0401
 
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
@@ -119,7 +132,22 @@ def construct_url(sg_code=None, province=None, urban_rural='urban'):
     return url
 
 
-def download_from_url(url, output_directory, file_name='sg.tiff'):
+def get_filename(url):
+    """Parse url to get a file name.
+    :param url: Url to download a file that contains a filename.
+    :type url: str
+
+    :returns: A file name with extension.
+    :rtype: str
+    """
+    parsed_url = urlparse(url)
+    url_query = parsed_url[4]
+    file_name = url_query.split('&')[0].split('/')[-1]
+
+    return file_name
+
+
+def download_from_url(url, output_directory, file_name=None):
     """Download file from a url and put it under output_directory.
 
     :param url: Url that gives response.
@@ -128,6 +156,9 @@ def download_from_url(url, output_directory, file_name='sg.tiff'):
     :param output_directory: Directory to put the diagram.
     :type output_directory: str
     """
+    if file_name is None:
+        file_name = get_filename(url)
+    print 'Download file %s from %s', (file_name, url)
     file_name = os.path.join(output_directory, file_name)
     fp = open(file_name, 'wb')
     curl = pycurl.Curl()
@@ -141,6 +172,29 @@ def download_from_url(url, output_directory, file_name='sg.tiff'):
 
     curl.close()
     fp.close()
+
+
+def parse_download_page(download_page_url):
+    """Parse download_page_url to get list of download link.
+
+    :param download_page_url: Url to download page.
+    :type download_page_url: str
+
+    :returns: List of url to download the diagram.
+    :rtype: list
+    """
+    download_urls = []
+    prefix_url = 'http://csg.dla.gov.za/esio/'
+    html = urllib.urlopen(download_page_url)
+    download_page_soup = BeautifulSoup(html)
+    urls = download_page_soup.find_all('a')
+    for url in urls:
+        full_url = url['href']
+        if full_url[0:2] == './':
+            full_url = full_url[2:]
+        full_url = prefix_url + full_url
+        download_urls.append(str(full_url))
+    return download_urls
 
 
 def download_sg_diagram(sg_code, province, output_directory, urban_rural):
@@ -158,12 +212,14 @@ def download_sg_diagram(sg_code, province, output_directory, urban_rural):
     download_page = construct_url(sg_code, province, urban_rural)
     print 'download page: ', download_page
     # Parse link here
-    download_link = download_page
+    download_links = parse_download_page(download_page)
 
     output_directory = os.path.join(output_directory, sg_code)
     if not os.path.exists(output_directory):
         os.mkdir(output_directory)
-    download_from_url(download_link, output_directory)
+    for download_link in download_links:
+
+        download_from_url(download_link, output_directory)
 
 
 def get_spatial_index(data_provider):
@@ -176,7 +232,8 @@ def get_spatial_index(data_provider):
     return index
 
 
-def get_sg_codes_and_provinces(target_layer, diagram_layer, sg_code_field, provinces_layer):
+def get_sg_codes_and_provinces(
+        target_layer, diagram_layer, sg_code_field, provinces_layer):
     """Obtains sg codes from target layer.
 
     :param target_layer: The target layer.

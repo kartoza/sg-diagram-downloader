@@ -20,7 +20,9 @@ from test.utilities_for_testing import (
 from sg_download_utilities import (
     get_sg_codes_and_provinces,
     download_from_url,
-    get_office)
+    get_office,
+    parse_download_page,
+    get_filename)
 
 
 DATA_TEST_DIR = os.path.join(os.path.dirname(__file__), 'test', 'data')
@@ -90,6 +92,26 @@ class TestUtilities(unittest.TestCase):
         region_code = 'C0020000'
         message = 'Should be None'
         self.assertIsNone(get_office(region_code, province), message)
+
+    def test_parse_download_page(self):
+        """Test for parse_download_page."""
+        url = ('http://csg.dla.gov.za/esio/listdocument.jsp?regDivision'
+               '=C0160013&Noffice=2&Erf=1234&Portion=0&FarmName=')
+        urls = parse_download_page(url)
+        expected_urls = [
+            'http://csg.dla.gov.za/esio/viewTIFF?furl=/'
+            'images/9a/1018ML01.TIF&office=SGCTN']
+        message = 'Should be %s but got %s' % (expected_urls, urls)
+        self.assertEqual(urls, expected_urls, message)
+
+    def test_parse_url(self):
+        """Test for get_filename."""
+        url = ('http://csg.dla.gov.za/esio/viewTIFF?furl=/'
+               'images/9a/1018ML01.TIF&office=SGCTN')
+        filename = get_filename(url)
+        expected_filename = '1018ML01.TIF'
+        message = 'Should be %s but got %s' % (expected_filename, filename)
+        self.assertEqual(filename, expected_filename)
 
 if __name__ == '__main__':
     unittest.main()
