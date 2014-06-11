@@ -81,7 +81,7 @@ def get_office(region_code=None, province=None):
         print 'Database error'
 
 
-def construct_url(sg_code=None, province=None):
+def construct_url(sg_code=None, province=None, urban_rural='urban'):
     """Construct url to download sg diagram.
 
     :param sg_code: SG code.
@@ -89,6 +89,9 @@ def construct_url(sg_code=None, province=None):
 
     :param province: province name.
     :type province: str
+
+    :param urban_rural: Urban or rural.
+    :type urban_rural: str
 
     :returns: URL to download sg diagram.
     :rtype: str
@@ -113,7 +116,7 @@ def construct_url(sg_code=None, province=None):
     return url
 
 
-def download_from_url(url, output_directory, file_name='random.tiff'):
+def download_from_url(url, output_directory, file_name='sg.tiff'):
     """Download file from a url and put it under output_directory.
 
     :param url: Url that gives response.
@@ -234,11 +237,19 @@ def get_sg_codes(target_layer, diagram_layer, sg_code_field, provinces_layer):
 
 
 def download_sg_diagrams(
-        target_layer, diagram_layer, sg_code_field, output_directory):
+        target_layer,
+        urban_rural,
+        diagram_layer,
+        sg_code_field,
+        output_directory,
+        provinces_layer):
     """Downloads all SG Diagrams.
 
     :param target_layer: The target layer.
     :type target_layer: QgsVectorLayer
+
+    :param urban_rural: Urban or rural type of target layer.
+    :type urban_rural: str
 
     :param diagram_layer: Vector layer that has sg code in its field.
     :type diagram_layer: QgsVectorLayer
@@ -248,12 +259,16 @@ def download_sg_diagrams(
 
     :param output_directory: Directory to put the diagram.
     :type output_directory: str
+
+    :param provinces_layer: province layer that will be used.
+    :type provinces_layer: QgsVectorLayer
     """
 
-    sg_codes = get_sg_codes(target_layer, diagram_layer, sg_code_field)
+    sg_codes = get_sg_codes(
+        target_layer, diagram_layer, sg_code_field, provinces_layer)
     for sg_code in sg_codes:
         print sg_code
-        # download_sg_diagram(sg_code, output_directory)
+        download_sg_diagram(sg_code, output_directory)
 
 if __name__ == '__main__':
     print PROVINCES_LAYER_PATH

@@ -67,6 +67,8 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
         self.setupUi(self)
         self.populate_combo_box_urban_or_rural()
         self.populate_combo_box()
+        self.province_layer = QgsVectorLayer(
+            'data/provinces.shp', 'provinces', 'ogr')
 
     def populate_combo_box(self):
         """Populate the combo boxes with all polygon layers loaded in QGIS."""
@@ -76,8 +78,8 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
         found_flag = False
         for layer in layers:
             # check if layer is a vector polygon layer
-            if layer.type() == QgsMapLayer.VectorLayer and layer\
-                    .geometryType() == QGis.Polygon:
+            if (layer.type() == QgsMapLayer.VectorLayer and
+                    layer.geometryType() == QGis.Polygon):
                 found_flag = True
                 text = layer.name()
                 data = str(layer.id())
@@ -92,22 +94,7 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
         self.combo_box_urban_or_rural.insertItem(0, 'rural', 'rural')
         self.combo_box_urban_or_rural.insertItem(1, 'urban', 'urban')
 
-    @pyqtSignature('int')
-    def on_combo_box_target_layer_currentIndexChanged(self, theIndex=None):
-        """Automatic slot executed when the layer is changed to update fields.
-
-        :param theIndex: Passed by the signal that triggers this slot.
-        :type theIndex: int
-        """
-        target_layer_name = self.combo_box_target_layer.currentText()
-        # noinspection PyArgumentList
-        if 'erf' in target_layer_name:
-            self.combo_box_urban_or_rural.setCurrentIndex(1)
-        elif 'farm' in target_layer_name:
-            self.combo_box_urban_or_rural.setCurrentIndex(0)
-        else:
-            self.combo_box_urban_or_rural.setCurrentIndex(0)
-
+    # noinspection PyPep8Naming
     @pyqtSignature('int')
     def on_combo_box_diagram_layer_currentIndexChanged(self, theIndex=None):
         """Automatic slot executed when the layer is changed to update fields.
@@ -123,6 +110,16 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
         self.combo_box_sg_code_field.clear()
         for field in fields:
             self.combo_box_sg_code_field.insertItem(0, field, field)
+
+        diagram_layer_name = self.combo_box_diagram_layer.currentText()
+
+        # noinspection PyArgumentList
+        if 'erf' in diagram_layer_name:
+            self.combo_box_urban_or_rural.setCurrentIndex(1)
+        elif 'farm' in diagram_layer_name:
+            self.combo_box_urban_or_rural.setCurrentIndex(0)
+        else:
+            self.combo_box_urban_or_rural.setCurrentIndex(0)
 
     @pyqtSignature('')  # prevents actions being handled twice
     def on_output_directory_button_clicked(self):
@@ -140,8 +137,11 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
         index = self.combo_box_target_layer.currentIndex()
         target_layer_id = self.combo_box_target_layer.itemData(
             index, QtCore.Qt.UserRole)
+
         # noinspection PyArgumentList
         target_layer = QgsMapLayerRegistry.instance().mapLayer(target_layer_id)
+
+        urban_rural = self.urban_or_rural.currentText()
 
         index = self.combo_box_diagram_layer.currentIndex()
         diagram_layer_id = self.combo_box_diagram_layer.itemData(
@@ -149,10 +149,17 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
         # noinspection PyArgumentList
         diagram_layer = QgsMapLayerRegistry.instance().mapLayer(
             diagram_layer_id)
+
         sg_code_field = self.combo_box_sg_code_field.currentText()
+
         output_directory = self.output_directory.text()
 
         download_sg_diagrams(
-            target_layer, diagram_layer, sg_code_field, output_directory)
+            target_layer,
+            urban_rural,
+            diagram_layer,
+            sg_code_field,
+            output_directory,
+            self.province_layer,)
 
         self.close()
