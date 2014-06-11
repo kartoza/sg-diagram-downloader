@@ -55,6 +55,8 @@ HELP = help/build/html
 
 THIRD_PARTY = third_party
 
+DATA_DIR = data
+
 PLUGIN_UPLOAD = $(c)/plugin_upload.py
 
 QGISDIR=.qgis2
@@ -113,6 +115,7 @@ fastdeploy: derase compile
 	cp -vf $(EXTRAS) $(HOME)/$(QGISDIR)/python/plugins/$(PLUGINNAME)
 	mkdir -p $(HOME)/$(QGISDIR)/python/plugins/$(PLUGINNAME)/i18n
 	cp -vfr $(THIRD_PARTY) $(HOME)/$(QGISDIR)/python/plugins/$(PLUGINNAME)/
+	cp -vfr $(DATA_DIR) $(HOME)/$(QGISDIR)/python/plugins/$(PLUGINNAME)/
 
 debugdeploy: deploy
 	@echo

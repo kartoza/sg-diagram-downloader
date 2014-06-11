@@ -63,6 +63,8 @@ def get_office(region_code=None, province=None):
     :rtype: tuple
     """
     try:
+        print REGIONAL_OFFICES_SQLITE3, 'database path'
+        print os.path.exists(REGIONAL_OFFICES_SQLITE3)
         db_connection = sqlite3.connect(REGIONAL_OFFICES_SQLITE3)
         db_cursor = db_connection.cursor()
         query = 'SELECT office, office_no FROM regional_office WHERE '
@@ -77,8 +79,8 @@ def get_office(region_code=None, province=None):
         db_connection.close()
 
         return row
-    except sqlite3.DatabaseError:
-        print 'Database error'
+    except sqlite3.DatabaseError as e:
+        print 'Database error', e
 
 
 def construct_url(sg_code=None, province=None, urban_rural='urban'):
@@ -96,6 +98,7 @@ def construct_url(sg_code=None, province=None, urban_rural='urban'):
     :returns: URL to download sg diagram.
     :rtype: str
     """
+    print 'constructing url for %s %s %s' % (sg_code, province, urban_rural)
     if sg_code is None or province is None:
         return (
             'http://csg.dla.gov.za/esio/listdocument.jsp?regDivision=C0160013'
@@ -112,7 +115,7 @@ def construct_url(sg_code=None, province=None, urban_rural='urban'):
     url += '&office=' + office
     url += '&Noffice=' + office_number
     url += '&Erf=' + erf
-    url += '&Portion' + portion
+    url += '&Portion=' + portion
     return url
 
 
@@ -128,7 +131,7 @@ def download_from_url(url, output_directory, file_name='sg.tiff'):
     file_name = os.path.join(output_directory, file_name)
     fp = open(file_name, 'wb')
     curl = pycurl.Curl()
-    curl.setopt(pycurl.URL, url)
+    curl.setopt(pycurl.URL, str(url))
     curl.setopt(pycurl.CONNECTTIMEOUT, 60)
     curl.setopt(pycurl.FOLLOWLOCATION, True)
     curl.setopt(pycurl.NOBODY, False)
@@ -140,18 +143,26 @@ def download_from_url(url, output_directory, file_name='sg.tiff'):
     fp.close()
 
 
-def download_sg_diagram(sg_code, output_directory):
+def download_sg_diagram(sg_code, province, output_directory, urban_rural):
     """Download sg diagram using sg_code and put it under output_directory.
 
     :param sg_code: Surveyor General code.
     :type sg_code: str
 
+    :param province: Province name.
+    :type province: str
+
     :param output_directory: Directory to put the diagram.
     :type output_directory: str
     """
-    download_page = construct_url(sg_code)
+    download_page = construct_url(sg_code, province, urban_rural)
+    print 'download page: ', download_page
+    # Parse link here
     download_link = download_page
+
     output_directory = os.path.join(output_directory, sg_code)
+    if not os.path.exists(output_directory):
+        os.mkdir(output_directory)
     download_from_url(download_link, output_directory)
 
 
@@ -165,7 +176,7 @@ def get_spatial_index(data_provider):
     return index
 
 
-def get_sg_codes(target_layer, diagram_layer, sg_code_field, provinces_layer):
+def get_sg_codes_and_provinces(target_layer, diagram_layer, sg_code_field, provinces_layer):
     """Obtains sg codes from target layer.
 
     :param target_layer: The target layer.
@@ -184,7 +195,7 @@ def get_sg_codes(target_layer, diagram_layer, sg_code_field, provinces_layer):
     :rtype: list
     """
     intersects = []
-    sg_codes = []
+    sg_codes_and_provinces = []
 
     provinces_data_provider = provinces_layer.dataProvider()
     province_index = provinces_layer.fieldNameIndex('province')
@@ -230,10 +241,10 @@ def get_sg_codes(target_layer, diagram_layer, sg_code_field, provinces_layer):
         if not inside_province:
             province_name = 'Null'
 
-        if [sg_code, province_name] not in sg_codes:
-            sg_codes.append([sg_code, province_name])
+        if [sg_code, province_name] not in sg_codes_and_provinces:
+            sg_codes_and_provinces.append([sg_code, province_name])
 
-    return sg_codes
+    return sg_codes_and_provinces
 
 
 def download_sg_diagrams(
@@ -264,11 +275,13 @@ def download_sg_diagrams(
     :type provinces_layer: QgsVectorLayer
     """
 
-    sg_codes = get_sg_codes(
+    sg_codes_and_provinces = get_sg_codes_and_provinces(
         target_layer, diagram_layer, sg_code_field, provinces_layer)
-    for sg_code in sg_codes:
-        print sg_code
-        download_sg_diagram(sg_code, output_directory)
+    for sg_code_and_province in sg_codes_and_provinces:
+        print sg_code_and_province
+        sg_code = sg_code_and_province[0]
+        province = sg_code_and_province[1]
+        download_sg_diagram(sg_code, province, output_directory, urban_rural)
 
 if __name__ == '__main__':
     print PROVINCES_LAYER_PATH

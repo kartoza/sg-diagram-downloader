@@ -18,7 +18,7 @@ import os
 from test.utilities_for_testing import (
     get_temp_shapefile_layer, TEMP_DIR, get_random_string)
 from sg_download_utilities import (
-    get_sg_codes,
+    get_sg_codes_and_provinces,
     download_from_url,
     get_office)
 
@@ -59,7 +59,7 @@ class TestUtilities(unittest.TestCase):
         self.assertTrue(os.path.exists(file_path), message)
 
     def test_get_sg_codes(self):
-        """Test for get_sg_codes."""
+        """Test for get_sg_codes_and_provinces."""
         target_layer = get_temp_shapefile_layer(
             purchaseplan_layer, 'purchaseplan')
         diagram_layer = get_temp_shapefile_layer(
@@ -69,7 +69,7 @@ class TestUtilities(unittest.TestCase):
             provinces_layer, 'provinces')
 
         target_layer.setSelectedFeatures([7])
-        sg_codes = get_sg_codes(
+        sg_codes = get_sg_codes_and_provinces(
             target_layer, diagram_layer, sg_code_field, sa_provinces_layer)
         message = (
             'The number of sg codes extracted should be 33. I got %s' % len(

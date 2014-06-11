@@ -141,7 +141,7 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
         # noinspection PyArgumentList
         target_layer = QgsMapLayerRegistry.instance().mapLayer(target_layer_id)
 
-        urban_rural = self.urban_or_rural.currentText()
+        urban_rural = self.combo_box_urban_or_rural.currentText()
 
         index = self.combo_box_diagram_layer.currentIndex()
         diagram_layer_id = self.combo_box_diagram_layer.itemData(
