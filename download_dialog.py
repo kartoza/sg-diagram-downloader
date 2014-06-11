@@ -45,8 +45,19 @@ from qgis.core import (
     QgsFeatureRequest,
     QgsSpatialIndex,
     QgsMapLayerRegistry)
-from PyQt4 import QtGui, QtCore
+from PyQt4.QtCore import (
+    Qt,
+    QSettings,
+    QTranslator,
+    qVersion,
+    QCoreApplication,
+    QUrl)
+from PyQt4.QtGui import (
+    QAction,
+    QIcon,
+    QProgressBar)
 from PyQt4.QtCore import pyqtSignature
+from qgis.gui import QgsMessageBar
 
 from sg_download_utilities import download_sg_diagrams
 
@@ -55,7 +66,7 @@ FORM_CLASS, _ = uic.loadUiType(os.path.join(
 
 
 class DownloadDialog(QtGui.QDialog, FORM_CLASS):
-    def __init__(self, parent=None):
+    def __init__(self, iface, parent=None):
         """Constructor."""
         super(DownloadDialog, self).__init__(parent)
         # Set up the user interface from Designer.
@@ -65,6 +76,8 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
         # #widgets-and-dialogs-with-auto-connect
         QtGui.QDialog.__init__(self, parent)
         self.setupUi(self)
+        self.message_bar = None
+        self.iface = iface
         self.populate_combo_box()
         self.province_layer = QgsVectorLayer(
             'data/provinces.shp', 'provinces', 'ogr')
@@ -99,7 +112,7 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
         :type theIndex: int
         """
         layer_id = self.combo_box_parcel_layer.itemData(
-            theIndex, QtCore.Qt.UserRole)
+            theIndex, Qt.UserRole)
         # noinspection PyArgumentList
         layer = QgsMapLayerRegistry.instance().mapLayer(layer_id)
         fields = layer.dataProvider().fieldNameMap().keys()
@@ -121,17 +134,16 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
 
     def accept(self):
         """Event handler for when ok is pressed."""
-
         index = self.combo_box_target_layer.currentIndex()
         target_layer_id = self.combo_box_target_layer.itemData(
-            index, QtCore.Qt.UserRole)
+            index, Qt.UserRole)
 
         # noinspection PyArgumentList
         target_layer = QgsMapLayerRegistry.instance().mapLayer(target_layer_id)
 
         index = self.combo_box_parcel_layer.currentIndex()
         diagram_layer_id = self.combo_box_parcel_layer.itemData(
-            index, QtCore.Qt.UserRole)
+            index, Qt.UserRole)
         # noinspection PyArgumentList
         diagram_layer = QgsMapLayerRegistry.instance().mapLayer(
             diagram_layer_id)
@@ -140,14 +152,63 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
 
         output_directory = self.output_directory.text()
 
+        message_bar = self.iface.messageBar().createMessage(
+            self.tr('Downloading Surveyor General Diagram'),
+            self.tr('Please stand by while download process is in progress.'),
+            self.iface.mainWindow())
+
+        progress_bar = QProgressBar()
+        progress_bar.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        # Need to implement a separate worker thread if we want cancel
+        #cancel_button = QPushButton()
+        #cancel_button.setText(self.tr('Cancel'))
+        #cancel_button.clicked.connect(worker.kill)
+        message_bar.layout().addWidget(progress_bar)
+        #message_bar.layout().addWidget(cancel_button)
+        self.iface.messageBar().pushWidget(
+            message_bar, self.iface.messageBar().INFO)
+        self.message_bar = message_bar
+
+        self.close()
+
+        def progress_callback(current, maximum, message=None):
+            """GUI based callback implementation for showing progress.
+
+            :param current: Current progress.
+            :type current: int
+
+            :param maximum: Maximum range (point at which task is complete.
+            :type maximum: int
+
+            :param message: Optional message to display in the progress bar
+            :type message: str, QString
+            """
+            if message is not None:
+                message_bar.setText(message)
+            if progress_bar is not None:
+                progress_bar.setMaximum(maximum)
+                progress_bar.setValue(current)
+
         download_sg_diagrams(
             target_layer,
             diagram_layer,
             sg_code_field,
             output_directory,
-            self.province_layer)
+            self.province_layer,
+            callback=progress_callback)
 
-        self.close()
+        message = 'Download completed'
+        progress_callback(100, 100, message)
+
+        # Get rid of the message bar again.
+        self.iface.messageBar().popWidget(message_bar)
+
+        #QgsMapLayerRegistry.instance().addMapLayers([layer])
+        self.iface.messageBar().pushMessage(
+            self.tr('Download completed.'),
+            self.tr('Your files are available in %s.' % output_directory),
+            level=QgsMessageBar.INFO,
+            duration=10)
 
     def set_tool_tip(self):
         """Set tool tip as helper text for some objects."""

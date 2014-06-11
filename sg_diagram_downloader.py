@@ -199,8 +199,8 @@ class SGDiagramDownloader:
                 action)
             self.iface.removeToolBarIcon(action)
 
-    @staticmethod
-    def show_download_dialog():
+    # @staticmethod
+    def show_download_dialog(self):
         """Show the download dialog."""
-        dialog = DownloadDialog()
+        dialog = DownloadDialog(self.iface)
         dialog.exec_()  # modal

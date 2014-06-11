@@ -76,8 +76,6 @@ def get_office(region_code=None, province=None):
     :rtype: tuple
     """
     try:
-        print REGIONAL_OFFICES_SQLITE3, 'database path'
-        print os.path.exists(REGIONAL_OFFICES_SQLITE3)
         db_connection = sqlite3.connect(REGIONAL_OFFICES_SQLITE3)
         db_cursor = db_connection.cursor()
         query = (
@@ -109,7 +107,7 @@ def construct_url(sg_code=None, province=None):
     :returns: URL to download sg diagram.
     :rtype: str
     """
-    print 'constructing url for %s %s' % (sg_code, province)
+    print 'Constructing url for %s %s' % (sg_code, province)
     if sg_code is None or province is None:
         return (
             'http://csg.dla.gov.za/esio/listdocument.jsp?regDivision=C0160013'
@@ -145,7 +143,7 @@ def get_filename(url):
     return file_name
 
 
-def download_from_url(url, output_directory, file_name=None):
+def download_from_url(url, output_directory, filename=None):
     """Download file from a url and put it under output_directory.
 
     :param url: Url that gives response.
@@ -154,11 +152,15 @@ def download_from_url(url, output_directory, file_name=None):
     :param output_directory: Directory to put the diagram.
     :type output_directory: str
     """
-    if file_name is None:
-        file_name = get_filename(url)
-    print 'Download file %s from %s', (file_name, url)
-    file_name = os.path.join(output_directory, file_name)
-    fp = open(file_name, 'wb')
+    if filename is None:
+        filename = get_filename(url)
+    print 'Download file %s from %s' % (filename, url)
+    file_path = os.path.join(output_directory, filename)
+    if os.path.exists(file_path):
+        print 'File %s existed, not downloading' % file_path
+        return
+
+    fp = open(file_path, 'wb')
     curl = pycurl.Curl()
     curl.setopt(pycurl.URL, str(url))
     curl.setopt(pycurl.CONNECTTIMEOUT, 60)
@@ -195,7 +197,7 @@ def parse_download_page(download_page_url):
     return download_urls
 
 
-def download_sg_diagram(sg_code, province, output_directory, urban_rural):
+def download_sg_diagram(sg_code, province, output_directory):
     """Download sg diagram using sg_code and put it under output_directory.
 
     :param sg_code: Surveyor General code.
@@ -207,8 +209,8 @@ def download_sg_diagram(sg_code, province, output_directory, urban_rural):
     :param output_directory: Directory to put the diagram.
     :type output_directory: str
     """
-    download_page = construct_url(sg_code, province, urban_rural)
-    print 'download page: ', download_page
+    download_page = construct_url(sg_code, province)
+    print 'Download page: %s' % download_page
     # Parse link here
     download_links = parse_download_page(download_page)
 
@@ -307,7 +309,8 @@ def download_sg_diagrams(
         diagram_layer,
         sg_code_field,
         output_directory,
-        provinces_layer):
+        provinces_layer,
+        callback=None):
     """Downloads all SG Diagrams.
 
     :param target_layer: The target layer.
@@ -324,15 +327,23 @@ def download_sg_diagrams(
 
     :param provinces_layer: province layer that will be used.
     :type provinces_layer: QgsVectorLayer
-    """
 
+    :param callback: A function to all to indicate progress. The function
+        should accept params 'current' (int) and 'maximum' (int). Defaults to
+        None.
+    :type callback: function
+    """
     sg_codes_and_provinces = get_sg_codes_and_provinces(
         target_layer, diagram_layer, sg_code_field, provinces_layer)
+    maximum = len(sg_codes_and_provinces)
+    current = 0
     for sg_code_and_province in sg_codes_and_provinces:
-        print sg_code_and_province
         sg_code = sg_code_and_province[0]
         province = sg_code_and_province[1]
         download_sg_diagram(sg_code, province, output_directory)
+        message = 'Downloading %s %s' % (sg_code, province)
+        callback(current, maximum, message)
+        current += 1
 
 if __name__ == '__main__':
     print PROVINCES_LAYER_PATH
