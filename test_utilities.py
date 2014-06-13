@@ -57,7 +57,6 @@ class TestUtilities(unittest.TestCase):
         download_from_url(url, output_directory, filename)
         file_path = os.path.join(output_directory, filename)
         message = 'File should be existed in %s.' % file_path
-        print os.path.exists(file_path)
         self.assertTrue(os.path.exists(file_path), message)
 
     def test_get_sg_codes(self):

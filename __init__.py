@@ -33,6 +33,7 @@ if third_party_dir not in sys.path:
 
 import custom_logging  # pylint: disable=relative-import
 
+log_file_path = '/tmp/sg-download/log.log'
 
 SENTRY_URL = (
     'http://9a83c384bc0f476a9ba80958704383a8:'

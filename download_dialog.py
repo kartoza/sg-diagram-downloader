@@ -26,6 +26,7 @@ __date__ = '30/05/2014'
 __copyright__ = ''
 
 import os
+from datetime import datetime
 
 # Import the PyQt and QGIS libraries
 # this import required to enable PyQt API v2
@@ -35,27 +36,11 @@ import qgis  # pylint: disable=W0611
 from PyQt4 import QtGui, uic
 from qgis.core import (
     QGis,
-    QgsField,
     QgsVectorLayer,
-    QgsFeature,
-    QgsGeometry,
-    QgsPoint,
     QgsMapLayer,
-    QgsRectangle,
-    QgsFeatureRequest,
-    QgsSpatialIndex,
     QgsMapLayerRegistry)
-from PyQt4.QtCore import (
-    Qt,
-    QSettings,
-    QTranslator,
-    qVersion,
-    QCoreApplication,
-    QUrl)
-from PyQt4.QtGui import (
-    QAction,
-    QIcon,
-    QProgressBar)
+from PyQt4.QtCore import Qt
+from PyQt4.QtGui import QProgressBar
 from PyQt4.QtCore import pyqtSignature
 from qgis.gui import QgsMessageBar
 
@@ -120,7 +105,6 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
         for field in fields:
             self.combo_box_sg_code_field.insertItem(0, field, field)
 
-        diagram_layer_name = self.combo_box_parcel_layer.currentText()
 
     @pyqtSignature('')  # prevents actions being handled twice
     def on_output_directory_button_clicked(self):
@@ -132,6 +116,7 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
             self.tr('Set output directory'))
         self.output_directory.setText(output_directory)
 
+    # noinspection PyArgumentList
     def accept(self):
         """Event handler for when ok is pressed."""
         index = self.combo_box_target_layer.currentIndex()
@@ -145,26 +130,60 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
         diagram_layer_id = self.combo_box_parcel_layer.itemData(
             index, Qt.UserRole)
         # noinspection PyArgumentList
-        diagram_layer = QgsMapLayerRegistry.instance().mapLayer(
+        parcel_layer = QgsMapLayerRegistry.instance().mapLayer(
             diagram_layer_id)
 
         sg_code_field = self.combo_box_sg_code_field.currentText()
 
         output_directory = self.output_directory.text()
 
+        if target_layer is None:
+            message = (
+                'There is no target layer available. Please open a layer for '
+                'it')
+            # noinspection PyCallByClass
+            QtGui.QMessageBox.information(
+                self, self.tr('Surveyor General Diagram Downloader'), message)
+            return
+
+        if parcel_layer is None:
+            message = (
+                'There is no parcel layer available. Please open a layer for '
+                'it')
+            # noinspection PyCallByClass
+            QtGui.QMessageBox.information(
+                self, self.tr('Surveyor General Diagram Downloader'), message)
+            return
+
+        # check if no feature is selected
+        selected_features = target_layer.selectedFeatureCount()
+        if selected_features == 0:
+            message = (
+                'There is no layer selected in your target layer (%s). Please '
+                'select some features to download the surveyor general '
+                'diagram' % target_layer.name())
+            # noinspection PyCallByClass
+            QtGui.QMessageBox.information(
+                self, self.tr('Surveyor General Diagram Downloader'), message)
+            return
+
+        if output_directory is '' or not os.path.exists(output_directory):
+            message = (
+                'Your output directory is either empty or not exist. Please '
+                'fill the correct one.')
+            # noinspection PyCallByClass
+            QtGui.QMessageBox.information(
+                self, self.tr('Surveyor General Diagram Downloader'), message)
+            return
+
         message_bar = self.iface.messageBar().createMessage(
-            self.tr('Downloading Surveyor General Diagram'),
+            self.tr('Download SG Diagram'),
             self.tr('Please stand by while download process is in progress.'),
             self.iface.mainWindow())
 
         progress_bar = QProgressBar()
         progress_bar.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-        # Need to implement a separate worker thread if we want cancel
-        #cancel_button = QPushButton()
-        #cancel_button.setText(self.tr('Cancel'))
-        #cancel_button.clicked.connect(worker.kill)
         message_bar.layout().addWidget(progress_bar)
-        #message_bar.layout().addWidget(cancel_button)
         self.iface.messageBar().pushWidget(
             message_bar, self.iface.messageBar().INFO)
         self.message_bar = message_bar
@@ -189,13 +208,17 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
                 progress_bar.setMaximum(maximum)
                 progress_bar.setValue(current)
 
+        print datetime.now(), '188'
+
         download_sg_diagrams(
             target_layer,
-            diagram_layer,
+            parcel_layer,
             sg_code_field,
             output_directory,
             self.province_layer,
             callback=progress_callback)
+
+        print datetime.now(), '198'
 
         message = 'Download completed'
         progress_callback(100, 100, message)

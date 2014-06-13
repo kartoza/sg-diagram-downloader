@@ -28,17 +28,10 @@ __copyright__ = ''
 import os
 
 from qgis.core import (
-    QGis,
-    QgsField,
     QgsVectorLayer,
     QgsFeature,
-    QgsGeometry,
-    QgsPoint,
-    QgsMapLayer,
-    QgsRectangle,
     QgsFeatureRequest,
-    QgsSpatialIndex,
-    QgsMapLayerRegistry)
+    QgsSpatialIndex)
 
 import pycurl
 import sqlite3
@@ -56,6 +49,8 @@ if third_party_path not in sys.path:
 from bs4 import BeautifulSoup
 # pylint: enable=F0401
 
+import logging
+from custom_logging import LOGGER
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 PROVINCES_LAYER_PATH = os.path.join(DATA_DIR, 'provinces.shp')
@@ -151,6 +146,9 @@ def download_from_url(url, output_directory, filename=None):
 
     :param output_directory: Directory to put the diagram.
     :type output_directory: str
+
+    :returns: File path if success to download, else None
+    :rtype: str
     """
     if filename is None:
         filename = get_filename(url)
@@ -158,20 +156,28 @@ def download_from_url(url, output_directory, filename=None):
     file_path = os.path.join(output_directory, filename)
     if os.path.exists(file_path):
         print 'File %s existed, not downloading' % file_path
-        return
+        return file_path
 
-    fp = open(file_path, 'wb')
-    curl = pycurl.Curl()
-    curl.setopt(pycurl.URL, str(url))
-    curl.setopt(pycurl.CONNECTTIMEOUT, 60)
-    curl.setopt(pycurl.FOLLOWLOCATION, True)
-    curl.setopt(pycurl.NOBODY, False)
+    try:
+        fp = open(file_path, 'wb')
+        curl = pycurl.Curl()
+        curl.setopt(pycurl.URL, str(url))
+        curl.setopt(pycurl.CONNECTTIMEOUT, 60)
+        curl.setopt(pycurl.FOLLOWLOCATION, True)
+        curl.setopt(pycurl.NOBODY, False)
 
-    curl.setopt(pycurl.WRITEDATA, fp)
-    curl.perform()
+        curl.setopt(pycurl.WRITEDATA, fp)
+        curl.perform()
 
-    curl.close()
-    fp.close()
+        curl.close()
+        fp.close()
+    except Exception, e:
+        raise Exception(e)
+
+    if os.path.exists(file_path):
+        return file_path
+    else:
+        return None
 
 
 def parse_download_page(download_page_url):
@@ -217,9 +223,26 @@ def download_sg_diagram(sg_code, province, output_directory):
     output_directory = os.path.join(output_directory, sg_code)
     if not os.path.exists(output_directory):
         os.mkdir(output_directory)
+    i = 0
     for download_link in download_links:
-
-        download_from_url(download_link, output_directory)
+        i += 1
+        try:
+            file_path = download_from_url(download_link, output_directory)
+            if file_path is not None:
+                message = (
+                    '%s %s %d %d True %s' % (
+                        sg_code, province, i, len(download_links), file_path))
+                LOGGER.debug(message)
+            else:
+                message = (
+                    '%s %s %d %d False N/A' % (
+                        sg_code, province, i, len(download_links)))
+                LOGGER.debug(message)
+        except Exception, e:
+            message = (
+                '%s %s %d %d False %s' % (
+                    sg_code, province, i, len(download_links), e))
+            LOGGER.debug(message)
 
 
 def get_spatial_index(data_provider):
@@ -304,6 +327,21 @@ def get_sg_codes_and_provinces(
     return sg_codes_and_provinces
 
 
+def print_progress_callback(current, maximum, message=None):
+    """GUI based callback implementation for showing progress.
+
+    :param current: Current progress.
+    :type current: int
+
+    :param maximum: Maximum range (point at which task is complete.
+    :type maximum: int
+
+    :param message: Optional message to display in the progress bar
+    :type message: str, QString
+    """
+    print '%d of %d' + str(message) % (current, maximum)
+
+
 def download_sg_diagrams(
         target_layer,
         diagram_layer,
@@ -333,6 +371,9 @@ def download_sg_diagrams(
         None.
     :type callback: function
     """
+    if callback is None:
+        callback = print_progress_callback
+
     sg_codes_and_provinces = get_sg_codes_and_provinces(
         target_layer, diagram_layer, sg_code_field, provinces_layer)
     maximum = len(sg_codes_and_provinces)
@@ -341,9 +382,12 @@ def download_sg_diagrams(
         sg_code = sg_code_and_province[0]
         province = sg_code_and_province[1]
         download_sg_diagram(sg_code, province, output_directory)
-        message = 'Downloading %s %s' % (sg_code, province)
+        message = 'Downloading %s (%d of %d)' % (sg_code, current + 1, maximum)
         callback(current, maximum, message)
         current += 1
+        from datetime import datetime
+        print datetime.now(), message
+
 
 if __name__ == '__main__':
     print PROVINCES_LAYER_PATH
