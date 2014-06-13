@@ -34,7 +34,19 @@ from raven.handlers.logging import SentryHandler
 # noinspection PyUnresolvedReferences
 from raven import Client
 # pylint: enable=F0401
-LOGGER = logging.getLogger('SFE')
+LOGGER = logging.getLogger('SG-D')
+
+
+def log_file_path():
+    """Get InaSAFE log file path.
+
+    :return: InaSAFE log file path.
+    :rtype: str
+    """
+    log_temp_dir = temp_dir('logs')
+    path = os.path.join(log_temp_dir, 'sg-diagram-downloader.log')
+    print path, 'AAAAAAAAAAAAAAA'
+    return path
 
 
 class QgsLogHandler(logging.Handler):
@@ -136,7 +148,7 @@ def setup_logger(sentry_url, log_file=None):
         '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     # create syslog handler which logs even debug messages
     log_temp_dir = temp_dir('logs')
-    path = os.path.join(log_temp_dir, 'qgis.log')
+    path = log_file_path()
     if log_file is None:
         file_handler = logging.FileHandler(path)
     else:
