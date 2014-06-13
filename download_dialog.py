@@ -26,13 +26,14 @@ __date__ = '30/05/2014'
 __copyright__ = ''
 
 import os
+from os.path import expanduser
+import logging
 from datetime import datetime
 
 # Import the PyQt and QGIS libraries
 # this import required to enable PyQt API v2
 # do it before Qt imports
 import qgis  # pylint: disable=W0611
-from os.path import expanduser
 from PyQt4 import QtGui, uic
 from qgis.core import (
     QGis,
@@ -49,7 +50,8 @@ from sg_download_utilities import download_sg_diagrams
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'download_dialog_base.ui'))
 
-import logging
+# from pydev import pydevd  # pylint: disable=F0401
+
 LOGGER = logging.getLogger('SG-D')
 
 
@@ -65,12 +67,19 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
         # #widgets-and-dialogs-with-auto-connect
         QtGui.QDialog.__init__(self, parent)
         self.setupUi(self)
+        # Enable remote debugging - should normally be commented out.
+        # pydevd.settrace(
+        #    'localhost', port=5678, stdoutToServer=True,
+        #    stderrToServer=True)
         self.message_bar = None
         self.iface = iface
         self.populate_combo_box()
+        # TODO: Why do we have this hardcodede?
         self.province_layer = QgsVectorLayer(
-            'data/provinces.shp', 'provinces', 'ogr')
-        self.target_layer = None
+            os.path.join(os.path.dirname(__file__),'data', 'provinces.shp'),
+            'provinces',
+            'ogr')
+        self.site_layer = None
         self.parcel_layer = None
         self.sg_code_field = None
         self.output_directory = None
@@ -89,24 +98,46 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
                 found_flag = True
                 text = layer.name()
                 data = str(layer.id())
-                self.combo_box_target_layer.insertItem(0, text, data)
+                self.combo_box_site_layer.insertItem(0, text, data)
                 self.combo_box_parcel_layer.insertItem(0, text, data)
         if found_flag:
-            self.combo_box_target_layer.setCurrentIndex(0)
+            self.combo_box_site_layer.setCurrentIndex(0)
             self.combo_box_parcel_layer.setCurrentIndex(0)
 
-        self.set_tool_tip()
 
     # noinspection PyPep8Naming
     @pyqtSignature('int')
-    def on_combo_box_parcel_layer_currentIndexChanged(self, theIndex=None):
+    def on_combo_box_site_layer_currentIndexChanged(self, index=None):
+        """Automatic slot executed when the site layer is changed..
+
+        :param index: Passed by the signal that triggers this slot.
+        :type index: int
+        """
+        LOGGER.debug('site layer changed')
+        combo = self.combo_box_site_layer
+        layer_id = combo.itemData(index, Qt.UserRole)
+        # noinspection PyArgumentList
+        layer = QgsMapLayerRegistry.instance().mapLayer(layer_id)
+        if not self.layer_has_selection(layer):
+            self.site_layer_label.setStyleSheet('color: red;')
+            self.buttonBox.button(QtGui.QDialogButtonBox.Ok).setEnabled(False)
+            self.site_layer = None
+        else:
+            self.site_layer_label.setStyleSheet('color: green;')
+            self.buttonBox.button(QtGui.QDialogButtonBox.Ok).setEnabled(True)
+            self.site_layer = layer
+        return
+
+    # noinspection PyPep8Naming
+    @pyqtSignature('int')
+    def on_combo_box_parcel_layer_currentIndexChanged(self, index=None):
         """Automatic slot executed when the layer is changed to update fields.
 
-        :param theIndex: Passed by the signal that triggers this slot.
-        :type theIndex: int
+        :param index: Passed by the signal that triggers this slot.
+        :type index: int
         """
         layer_id = self.combo_box_parcel_layer.itemData(
-            theIndex, Qt.UserRole)
+            index, Qt.UserRole)
         # noinspection PyArgumentList
         layer = QgsMapLayerRegistry.instance().mapLayer(layer_id)
         fields = layer.dataProvider().fieldNameMap().keys()
@@ -125,13 +156,28 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
         self.line_edit_output_directory.setText(self.output_directory)
 
     # noinspection PyArgumentList
+    @staticmethod
+    def layer_has_selection(layer):
+        """Check if a layer has any selected features.
+        :param layer: A polygon layer.
+        :type layer: QgsVectorLayer
+
+        :return: True if some features are selected, false if none.
+        :rtype: bool
+        """
+        selected_features = layer.selectedFeatureCount()
+        if selected_features == 0:
+            return False
+        else:
+            return True
+
     def accept(self):
-        """Event handler for when ok is pressed."""
+        """Event handler for when OK is pressed."""
         LOGGER.debug('run the tools')
         self.get_user_options()
 
-        if self.target_layer is None:
-            self.show_target_layer_information_message()
+        if self.site_layer is None:
+            self.show_site_layer_information_message()
             return
 
         if self.parcel_layer is None:
@@ -139,9 +185,8 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
             return
 
         # check if no feature is selected
-        selected_features = self.target_layer.selectedFeatureCount()
-        if selected_features == 0:
-            self.show_selected_features_information_message()
+        if not self.layer_has_selection(self.site_layer):
+            self.show_no_selection_warning()
             return
 
         if self.output_directory is '' or not os.path.exists(
@@ -184,7 +229,7 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
         print datetime.now(), '188'
 
         download_sg_diagrams(
-            self.target_layer,
+            self.site_layer,
             self.parcel_layer,
             self.sg_code_field,
             self.output_directory,
@@ -208,21 +253,7 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
 
         self.save_state()
 
-    def set_tool_tip(self):
-        """Set tool tip as helper text for some objects."""
-
-        target_layer_tooltip = (
-            'Select at least one feature in the layer you want to use to '
-            'select parcels')
-        parcel_layer_tooltip = 'Any layer with 21-digit SG code field'
-
-        self.label_target_layer.setToolTip(target_layer_tooltip)
-        self.label_parcel_layer.setToolTip(parcel_layer_tooltip)
-
-        self.combo_box_target_layer.setToolTip(target_layer_tooltip)
-        self.combo_box_parcel_layer.setToolTip(parcel_layer_tooltip)
-
-    def show_target_layer_information_message(self):
+    def show_site_layer_information_message(self):
         """Helper to show information message about target layer."""
         message = (
             'There is no target layer available. Please open a layer for '
@@ -249,12 +280,12 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
         QtGui.QMessageBox.information(
             self, self.tr('Surveyor General Diagram Downloader'), message)
 
-    def show_selected_features_information_message(self):
+    def show_no_selection_warning(self):
         """Helper to show information message about selected features."""
         message = (
-            'There is no layer selected in your target layer (%s). Please '
-            'select some features to download the surveyor general '
-            'diagram' % self.target_layer.name())
+            'There are no features selected in your target layer (%s). Please '
+            'select some features before trying to download the Surveyor '
+            'General diagram(s)' % self.site_layer.name())
         # noinspection PyCallByClass
         QtGui.QMessageBox.information(
             self, self.tr('Surveyor General Diagram Downloader'), message)
@@ -280,12 +311,12 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
 
         self.sg_code_field = self.combo_box_sg_code_field.currentText()
 
-        index = self.combo_box_target_layer.currentIndex()
-        target_layer_id = self.combo_box_target_layer.itemData(
+        index = self.combo_box_site_layer.currentIndex()
+        site_layer_id = self.combo_box_site_layer.itemData(
             index, Qt.UserRole)
         # noinspection PyArgumentList
-        self.target_layer = QgsMapLayerRegistry.instance().mapLayer(
-            target_layer_id)
+        self.site_layer = QgsMapLayerRegistry.instance().mapLayer(
+            site_layer_id)
 
         index = self.combo_box_parcel_layer.currentIndex()
         diagram_layer_id = self.combo_box_parcel_layer.itemData(

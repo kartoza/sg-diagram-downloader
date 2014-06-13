@@ -61,7 +61,7 @@ class TestUtilities(unittest.TestCase):
 
     def test_get_sg_codes(self):
         """Test for get_sg_codes_and_provinces."""
-        target_layer = get_temp_shapefile_layer(
+        site_layer = get_temp_shapefile_layer(
             purchaseplan_layer, 'purchaseplan')
         diagram_layer = get_temp_shapefile_layer(
             parent_farm_layer, 'parent farm')
@@ -69,9 +69,9 @@ class TestUtilities(unittest.TestCase):
         sa_provinces_layer = get_temp_shapefile_layer(
             provinces_layer, 'provinces')
 
-        target_layer.setSelectedFeatures([7])
+        site_layer.setSelectedFeatures([7])
         sg_codes = get_sg_codes_and_provinces(
-            target_layer, diagram_layer, sg_code_field, sa_provinces_layer)
+            site_layer, diagram_layer, sg_code_field, sa_provinces_layer)
         message = (
             'The number of sg codes extracted should be 33. I got %s' % len(
                 sg_codes))

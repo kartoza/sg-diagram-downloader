@@ -263,11 +263,11 @@ def get_spatial_index(data_provider):
 
 
 def get_sg_codes_and_provinces(
-        target_layer, diagram_layer, sg_code_field, provinces_layer):
+        site_layer, diagram_layer, sg_code_field, provinces_layer):
     """Obtains sg codes from target layer.
 
-    :param target_layer: The target layer.
-    :type target_layer: QgsVectorLayer
+    :param site_layer: The target layer.
+    :type site_layer: QgsVectorLayer
 
     :param diagram_layer: Vector layer that has sg code in its field.
     :type diagram_layer: QgsVectorLayer
@@ -297,7 +297,7 @@ def get_sg_codes_and_provinces(
 
     spatial_index = get_spatial_index(data_provider)
 
-    selected_features = target_layer.selectedFeatures()
+    selected_features = site_layer.selectedFeatures()
     for selected_feature in selected_features:
         for feature in data_provider.getFeatures():
             geometry = selected_feature.geometry()
@@ -350,7 +350,7 @@ def print_progress_callback(current, maximum, message=None):
 
 
 def download_sg_diagrams(
-        target_layer,
+        site_layer,
         diagram_layer,
         sg_code_field,
         output_directory,
@@ -358,8 +358,8 @@ def download_sg_diagrams(
         callback=None):
     """Downloads all SG Diagrams.
 
-    :param target_layer: The target layer.
-    :type target_layer: QgsVectorLayer
+    :param site_layer: The target layer.
+    :type site_layer: QgsVectorLayer
 
     :param diagram_layer: Vector layer that has sg code in its field.
     :type diagram_layer: QgsVectorLayer
@@ -382,7 +382,7 @@ def download_sg_diagrams(
         callback = print_progress_callback
 
     sg_codes_and_provinces = get_sg_codes_and_provinces(
-        target_layer, diagram_layer, sg_code_field, provinces_layer)
+        site_layer, diagram_layer, sg_code_field, provinces_layer)
     maximum = len(sg_codes_and_provinces)
     current = 0
     for sg_code_and_province in sg_codes_and_provinces:
