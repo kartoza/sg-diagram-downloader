@@ -49,6 +49,9 @@ from sg_download_utilities import download_sg_diagrams
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'download_dialog_base.ui'))
 
+import logging
+LOGGER = logging.getLogger('SG-D')
+
 
 # noinspection PyArgumentList
 class DownloadDialog(QtGui.QDialog, FORM_CLASS):
@@ -125,6 +128,7 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
     # noinspection PyArgumentList
     def accept(self):
         """Event handler for when ok is pressed."""
+        LOGGER.debug('run the tools')
         self.get_user_options()
 
         if self.target_layer is None:

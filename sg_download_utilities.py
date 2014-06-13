@@ -102,6 +102,9 @@ def construct_url(sg_code=None, province=None):
     :returns: URL to download sg diagram.
     :rtype: str
     """
+    if len(sg_code) != 21:
+        raise Exception('length sg code is not 21')
+
     print 'Constructing url for %s %s' % (sg_code, province)
     if sg_code is None or province is None:
         return (
@@ -111,7 +114,10 @@ def construct_url(sg_code=None, province=None):
     base_url = 'http://csg.dla.gov.za/esio/listdocument.jsp?'
     reg_division = sg_code[:8]
 
-    office, office_number, typology = get_office(reg_division, province)
+    record = get_office(reg_division, province)
+    if bool(record) is None:
+        raise Exception('SG code and province is not found in database')
+    office, office_number, typology = record
 
     erf = sg_code[8:16]
     portion = sg_code[16:]
@@ -238,11 +244,12 @@ def download_sg_diagram(sg_code, province, output_directory):
                     '%s %s %d %d False N/A' % (
                         sg_code, province, i, len(download_links)))
                 LOGGER.debug(message)
-        except Exception, e:
+        except Exception as e:
             message = (
                 '%s %s %d %d False %s' % (
                     sg_code, province, i, len(download_links), e))
             LOGGER.debug(message)
+            raise Exception(str(e) + message)
 
 
 def get_spatial_index(data_provider):
@@ -381,9 +388,12 @@ def download_sg_diagrams(
     for sg_code_and_province in sg_codes_and_provinces:
         sg_code = sg_code_and_province[0]
         province = sg_code_and_province[1]
-        download_sg_diagram(sg_code, province, output_directory)
         message = 'Downloading %s (%d of %d)' % (sg_code, current + 1, maximum)
         callback(current, maximum, message)
+        try:
+            download_sg_diagram(sg_code, province, output_directory)
+        except Exception, e:
+            print 'Failed to download %s %s' % (sg_code, province), e
         current += 1
         from datetime import datetime
         print datetime.now(), message
