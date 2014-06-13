@@ -56,7 +56,7 @@
      <item row="3" column="1">
       <layout class="QHBoxLayout" name="horizontalLayout">
        <item>
-        <widget class="QLineEdit" name="output_directory"/>
+        <widget class="QLineEdit" name="line_edit_output_directory"/>
        </item>
        <item>
         <widget class="QToolButton" name="output_directory_button">

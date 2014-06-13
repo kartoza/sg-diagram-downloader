@@ -32,7 +32,7 @@ from datetime import datetime
 # this import required to enable PyQt API v2
 # do it before Qt imports
 import qgis  # pylint: disable=W0611
-
+from os.path import expanduser
 from PyQt4 import QtGui, uic
 from qgis.core import (
     QGis,
@@ -41,7 +41,7 @@ from qgis.core import (
     QgsMapLayerRegistry)
 from PyQt4.QtCore import Qt
 from PyQt4.QtGui import QProgressBar
-from PyQt4.QtCore import pyqtSignature
+from PyQt4.QtCore import pyqtSignature, QSettings
 from qgis.gui import QgsMessageBar
 
 from sg_download_utilities import download_sg_diagrams
@@ -50,6 +50,7 @@ FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'download_dialog_base.ui'))
 
 
+# noinspection PyArgumentList
 class DownloadDialog(QtGui.QDialog, FORM_CLASS):
     def __init__(self, iface, parent=None):
         """Constructor."""
@@ -66,6 +67,11 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
         self.populate_combo_box()
         self.province_layer = QgsVectorLayer(
             'data/provinces.shp', 'provinces', 'ogr')
+        self.target_layer = None
+        self.parcel_layer = None
+        self.sg_code_field = None
+        self.output_directory = None
+        self.restore_state()
 
     def populate_combo_box(self):
         """Populate the combo boxes with all polygon layers loaded in QGIS."""
@@ -111,69 +117,33 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
         """Auto-connect slot activated when cache file tool button is clicked.
         """
         # noinspection PyCallByClass,PyTypeChecker
-        output_directory = QtGui.QFileDialog.getExistingDirectory(
+        self.output_directory = QtGui.QFileDialog.getExistingDirectory(
             self,
             self.tr('Set output directory'))
-        self.output_directory.setText(output_directory)
+        self.line_edit_output_directory.setText(self.output_directory)
 
     # noinspection PyArgumentList
     def accept(self):
         """Event handler for when ok is pressed."""
-        index = self.combo_box_target_layer.currentIndex()
-        target_layer_id = self.combo_box_target_layer.itemData(
-            index, Qt.UserRole)
+        self.get_user_options()
 
-        # noinspection PyArgumentList
-        target_layer = QgsMapLayerRegistry.instance().mapLayer(target_layer_id)
-
-        index = self.combo_box_parcel_layer.currentIndex()
-        diagram_layer_id = self.combo_box_parcel_layer.itemData(
-            index, Qt.UserRole)
-        # noinspection PyArgumentList
-        parcel_layer = QgsMapLayerRegistry.instance().mapLayer(
-            diagram_layer_id)
-
-        sg_code_field = self.combo_box_sg_code_field.currentText()
-
-        output_directory = self.output_directory.text()
-
-        if target_layer is None:
-            message = (
-                'There is no target layer available. Please open a layer for '
-                'it')
-            # noinspection PyCallByClass
-            QtGui.QMessageBox.information(
-                self, self.tr('Surveyor General Diagram Downloader'), message)
+        if self.target_layer is None:
+            self.show_target_layer_information_message()
             return
 
-        if parcel_layer is None:
-            message = (
-                'There is no parcel layer available. Please open a layer for '
-                'it')
-            # noinspection PyCallByClass
-            QtGui.QMessageBox.information(
-                self, self.tr('Surveyor General Diagram Downloader'), message)
+        if self.parcel_layer is None:
+            self.show_parcel_layer_information_message()
             return
 
         # check if no feature is selected
-        selected_features = target_layer.selectedFeatureCount()
+        selected_features = self.target_layer.selectedFeatureCount()
         if selected_features == 0:
-            message = (
-                'There is no layer selected in your target layer (%s). Please '
-                'select some features to download the surveyor general '
-                'diagram' % target_layer.name())
-            # noinspection PyCallByClass
-            QtGui.QMessageBox.information(
-                self, self.tr('Surveyor General Diagram Downloader'), message)
+            self.show_selected_features_information_message()
             return
 
-        if output_directory is '' or not os.path.exists(output_directory):
-            message = (
-                'Your output directory is either empty or not exist. Please '
-                'fill the correct one.')
-            # noinspection PyCallByClass
-            QtGui.QMessageBox.information(
-                self, self.tr('Surveyor General Diagram Downloader'), message)
+        if self.output_directory is '' or not os.path.exists(
+                self.output_directory):
+            self.show_output_directory_information_message()
             return
 
         message_bar = self.iface.messageBar().createMessage(
@@ -211,10 +181,10 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
         print datetime.now(), '188'
 
         download_sg_diagrams(
-            target_layer,
-            parcel_layer,
-            sg_code_field,
-            output_directory,
+            self.target_layer,
+            self.parcel_layer,
+            self.sg_code_field,
+            self.output_directory,
             self.province_layer,
             callback=progress_callback)
 
@@ -229,9 +199,11 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
         #QgsMapLayerRegistry.instance().addMapLayers([layer])
         self.iface.messageBar().pushMessage(
             self.tr('Download completed.'),
-            self.tr('Your files are available in %s.' % output_directory),
+            self.tr('Your files are available in %s.' % self.output_directory),
             level=QgsMessageBar.INFO,
             duration=10)
+
+        self.save_state()
 
     def set_tool_tip(self):
         """Set tool tip as helper text for some objects."""
@@ -246,3 +218,75 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
 
         self.combo_box_target_layer.setToolTip(target_layer_tooltip)
         self.combo_box_parcel_layer.setToolTip(parcel_layer_tooltip)
+
+    def show_target_layer_information_message(self):
+        """Helper to show information message about target layer."""
+        message = (
+            'There is no target layer available. Please open a layer for '
+            'it')
+        # noinspection PyCallByClass
+        QtGui.QMessageBox.information(
+            self, self.tr('Surveyor General Diagram Downloader'), message)
+
+    def show_parcel_layer_information_message(self):
+        """Helper to show information message about parcel layer."""
+        message = (
+            'There is no parcel layer available. Please open a layer for '
+            'it')
+        # noinspection PyCallByClass
+        QtGui.QMessageBox.information(
+            self, self.tr('Surveyor General Diagram Downloader'), message)
+
+    def show_output_directory_information_message(self):
+        """Helper to show information message about output directory."""
+        message = (
+            'Your output directory is either empty or not exist. Please '
+            'fill the correct one.')
+        # noinspection PyCallByClass
+        QtGui.QMessageBox.information(
+            self, self.tr('Surveyor General Diagram Downloader'), message)
+
+    def show_selected_features_information_message(self):
+        """Helper to show information message about selected features."""
+        message = (
+            'There is no layer selected in your target layer (%s). Please '
+            'select some features to download the surveyor general '
+            'diagram' % self.target_layer.name())
+        # noinspection PyCallByClass
+        QtGui.QMessageBox.information(
+            self, self.tr('Surveyor General Diagram Downloader'), message)
+
+    def restore_state(self):
+        """Restore state from previous session."""
+        home_user = expanduser("~")
+
+        previous_settings = QSettings()
+        previous_output_directory = str(previous_settings.value(
+            'sg-diagram-downloader/output_directory', home_user, type=str))
+        self.line_edit_output_directory.setText(previous_output_directory)
+
+    def save_state(self):
+        """Save state from current session."""
+        settings = QSettings()
+        settings.setValue(
+            'sg-diagram-downloader/output_directory', self.output_directory)
+
+    def get_user_options(self):
+        """Obtain dialog current options that are input by the user."""
+        self.output_directory = self.line_edit_output_directory.text()
+
+        self.sg_code_field = self.combo_box_sg_code_field.currentText()
+
+        index = self.combo_box_target_layer.currentIndex()
+        target_layer_id = self.combo_box_target_layer.itemData(
+            index, Qt.UserRole)
+        # noinspection PyArgumentList
+        self.target_layer = QgsMapLayerRegistry.instance().mapLayer(
+            target_layer_id)
+
+        index = self.combo_box_parcel_layer.currentIndex()
+        diagram_layer_id = self.combo_box_parcel_layer.itemData(
+            index, Qt.UserRole)
+        # noinspection PyArgumentList
+        self.parcel_layer = QgsMapLayerRegistry.instance().mapLayer(
+            diagram_layer_id)
