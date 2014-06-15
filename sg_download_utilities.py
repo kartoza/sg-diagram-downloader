@@ -19,6 +19,7 @@ Utilities for Surveyor General Diagram
  *                                                                         *
  ***************************************************************************/
 """
+from PyQt4.QtCore import QRegExp, Qt
 
 __author__ = 'ismail@linfiniti.com'
 __revision__ = '$Format:%H$'
@@ -32,7 +33,7 @@ from qgis.core import (
     QgsVectorLayer,
     QgsFeature,
     QgsFeatureRequest,
-    QgsSpatialIndex)
+    QgsSpatialIndex, QgsRectangle)
 
 import pycurl
 import sqlite3
@@ -461,6 +462,57 @@ def download_sg_diagrams(
     return result
 
 
+def is_valid_sg_code(value):
+    """Check if a string is a valid SG Code.
+
+    :param value: The string to be tested.
+    :type value: bool
+
+    :returns: True if the code is valid, otherwise False.
+    :rtype: bool
+    """
+
+    # Regex to check for the presence of an SG 21 digit code e.g.
+    # C01900000000026300000
+    # I did a quick scan of all the unique starting letters from
+    # Gavin's test dataset and came up with OBCFNT
+    prefixes = 'OBCFNT'
+    sg_code_regex = QRegExp('^[%s][0-9]{20}$' % prefixes, Qt.CaseInsensitive)
+    if len(value) != 21:
+        return False
+    if value[0] not in prefixes:
+        return False
+
+    # TODO Add Regex check we prepped for above
+    return True
+
 if __name__ == '__main__':
     print PROVINCES_LAYER_PATH
     print os.path.exists(PROVINCES_LAYER_PATH)
+
+
+def point_to_rectangle(point):
+    """Create a small rectangle by buffering a point.
+
+    Useful in cases where you want to use a point as the basis for a
+    QgsFeatureRequest rectangle filter.
+
+    :param point: Point that will be buffered.
+    :type point: QgsPoint
+
+    :returns: A rectangle made by creating a very tiny buffer around the
+        point.
+    :rtype: QgsRectangle
+    """
+    # arbitrarily small number
+    threshold = 0.00000000001
+    x_minimum = point.x() - threshold
+    y_minimum = point.y() - threshold
+    x_maximum = point.x() + threshold
+    y_maximum = point.y() + threshold
+    rectangle = QgsRectangle(
+        x_minimum,
+        y_minimum,
+        x_maximum,
+        y_maximum)
+    return rectangle

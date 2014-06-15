@@ -1,22 +1,25 @@
 # coding=utf-8
 """Implementation for SG Downloader map tool."""
-# Enable SIP v2
-import qgis
 
-from PyQt4.QtCore import Qt, QRegExp
-from PyQt4.QtGui import QRegExpValidator, QValidator
+
+import os
+# Enable SIP v2
+
+#from PyQt4.QtGui import QRegExpValidator, QValidator
 from PyQt4.QtCore import Qt
 from PyQt4.QtGui import QProgressBar
-from PyQt4.QtCore import pyqtSignature, QSettings
-from qgis.gui import QgsMessageBar
+from PyQt4.QtCore import QSettings
 
 from qgis.core import (
     QgsFeature,
-    QgsFeatureRequest,
-    QgsRectangle)
+    QgsFeatureRequest)
 from qgis.gui import QgsMapTool, QgsMessageBar
 
-from sg_download_utilities import download_sg_diagram, province_for_point
+from sg_download_utilities import (
+    download_sg_diagram,
+    province_for_point,
+    is_valid_sg_code,
+    point_to_rectangle)
 
 
 class SGMapTool(QgsMapTool):
@@ -37,11 +40,8 @@ class SGMapTool(QgsMapTool):
         self.canvas = canvas
         self.iface = iface
         self.provinces_layer = provinces_layer
-        self.iface.messageBar().pushMessage(
-            self.tr('SG Downloader.'),
-            self.tr('Click on a polygon with a 21 Digit code attribute'),
-            level=QgsMessageBar.INFO,
-            duration=10)
+        self.message_bar = None
+        self.progress_bar = None
 
     def canvasPressEvent(self, event):
         """Slot called when a mouse press occurs on the canvas.
@@ -58,6 +58,24 @@ class SGMapTool(QgsMapTool):
             was clicked etc.
         """
         pass
+
+    def setup_messagebar(self):
+        """Setup a QgsMessageBar for use from callback and user notifications.
+        """
+        if self.message_bar is not None:
+            return
+
+        self.message_bar = self.iface.messageBar().createMessage(
+            self.tr('SG Diagram Downloader'),
+            self.tr('Please stand by while download process is in progress.'),
+            self.iface.mainWindow())
+        # Set up message bar for progress reporting
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setMaximumWidth(150)
+        self.progress_bar.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        self.message_bar.layout().addWidget(self.progress_bar)
+        self.iface.messageBar().pushWidget(
+            self.message_bar, self.iface.messageBar().INFO)
 
     def canvasReleaseEvent(self, event):
         """Slot called when the mouse button is released on the canvas.
@@ -86,26 +104,18 @@ class SGMapTool(QgsMapTool):
                 self.progress_bar.setMaximum(maximum)
                 self.progress_bar.setValue(current)
 
+        self.iface.messageBar().pushMessage(
+            self.tr('SG Downloader.'),
+            self.tr('Preparing for download'),
+            level=QgsMessageBar.INFO)
+
         # No need to check that it is a valid, polygon layer
         # as the QAction for this map tool already does that
         layer = self.canvas.currentLayer()
 
-        # Regex to check for the presence of an SG 21 digit code e.g.
-        # C01900000000026300000
-        # I did a quick scan of all the unique starting letters from
-        # Gavin's test dataset and came up with OBCFNT
-        prefixes = 'OBCFNT'
-        sg_code_regex = QRegExp(
-            '^[%s][0-9]{20}$' % prefixes,
-            Qt.CaseInsensitive)
         place = self.toMapCoordinates(event.pos())
-        # arbitrarily small number
-        threshold = 0.00000000000000001
-        rectangle = QgsRectangle(
-            place.x() - threshold,
-            place.y() - threshold,
-            place.x() + threshold,
-            place.y() + threshold)
+        rectangle = point_to_rectangle(place)
+
         request = QgsFeatureRequest(QgsFeatureRequest.FilterRect)
         # Ensure only those features really intersecting the rect are returned
         request.setFlags(QgsFeatureRequest.ExactIntersect)
@@ -121,18 +131,7 @@ class SGMapTool(QgsMapTool):
             if field.typeName() == 'TEXT':
                 text_fields.append(field)
 
-        self.message_bar = self.iface.messageBar().createMessage(
-            self.tr('Download SG Diagram'),
-            self.tr('Please stand by while download process is in progress.'),
-            self.iface.mainWindow())
-
-        # Set up message bar for progress reporting
-        self.progress_bar = QProgressBar()
-        self.progress_bar.setMaximumWidth(150)
-        self.progress_bar.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-        self.message_bar.layout().addWidget(self.progress_bar)
-        self.iface.messageBar().pushWidget(
-            self.message_bar, self.iface.messageBar().INFO)
+        self.setup_messagebar()
 
         sg_field = None
         while polygons.nextFeature(feature):
@@ -143,11 +142,8 @@ class SGMapTool(QgsMapTool):
             if sg_field is None:
                 for field in text_fields:
                     value = str(feature[field.name()])
-                    if len(value) != 21:
+                    if not is_valid_sg_code(value):
                         continue
-                    if value[0] not in prefixes:
-                        continue
-                    # TODO Regex check
                     sg_field = field.name()
                     fetch_list.append(value)
             else:
@@ -159,20 +155,22 @@ class SGMapTool(QgsMapTool):
             self.iface.messageBar().pushMessage(
                 self.tr('SG Downloader.'),
                 self.tr('No parcels found with a valid 21 Digit code'),
-                level=QgsMessageBar.INFO,
+                level=QgsMessageBar.WARNING,
                 duration=10)
             return
 
         province = province_for_point(place, self.provinces_layer)
         result = ''
+        settings = QSettings()
+        output_path = settings.value(
+            'SGDownloader/output_path',
+            os.path.join(os.dirname(__file__), 'diagrams'))
         for sg_code in fetch_list:
             result += download_sg_diagram(
                 sg_code,
                 province,
                 '/tmp',
                 progress_callback)
-
-        del self.message_bar
 
         log = file('sg_downloader.log', 'a')
         log.write(result)
