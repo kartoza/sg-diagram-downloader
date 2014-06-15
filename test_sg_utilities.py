@@ -1,7 +1,6 @@
 # coding=utf-8
 """Tests for Utilities functionality.
 
-
 .. note:: This program is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published by
      the Free Software Foundation; either version 2 of the License, or
@@ -15,14 +14,20 @@ __copyright__ = ''
 
 import unittest
 import os
+
+from qgis.core import QgsPoint, QgsRectangle
+
 from test.utilities_for_testing import (
     get_temp_shapefile_layer, TEMP_DIR, get_random_string)
-from sg_download_utilities import (
-    get_sg_codes_and_provinces,
+from sg_utilities import (
+    map_sg_codes_to_provinces,
     download_from_url,
     get_office,
     parse_download_page,
-    get_filename)
+    get_filename,
+    is_valid_sg_code,
+    point_to_rectangle,
+    diagram_directory)
 
 
 DATA_TEST_DIR = os.path.join(os.path.dirname(__file__), 'test', 'data')
@@ -70,7 +75,7 @@ class TestUtilities(unittest.TestCase):
             provinces_layer, 'provinces')
 
         site_layer.setSelectedFeatures([7])
-        sg_codes = get_sg_codes_and_provinces(
+        sg_codes = map_sg_codes_to_provinces(
             site_layer, diagram_layer, sg_code_field, sa_provinces_layer)
         message = (
             'The number of sg codes extracted should be 33. I got %s' % len(
@@ -110,7 +115,33 @@ class TestUtilities(unittest.TestCase):
         filename = get_filename(url)
         expected_filename = '1018ML01.TIF'
         message = 'Should be %s but got %s' % (expected_filename, filename)
-        self.assertEqual(filename, expected_filename)
+        self.assertEqual(filename, expected_filename, message)
+
+    def test_is_valid_sg_code(self):
+        """Test for is_valid_sg_code."""
+        self.assertTrue(is_valid_sg_code('C01900000000026300000'))
+        self.assertTrue(is_valid_sg_code('B01900000000026300000'))
+        self.assertFalse(is_valid_sg_code('Foo'))
+        # Too long
+        self.assertFalse(is_valid_sg_code('B019000000000263000000'))
+        # Too short
+        self.assertFalse(is_valid_sg_code('B01900000000026300'))
+
+    def test_point_to_rectangle(self):
+        """Test for point to rectangle."""
+        point = QgsPoint(1.0, 1.0)
+        rectangle = point_to_rectangle(point)
+        expected_rectangle = QgsRectangle(
+            0.9999999999900000,
+            0.9999999999900000,
+            1.0000000000100000,
+            1.0000000000100000)
+        self.assertEqual(rectangle.toString(), expected_rectangle.toString())
+
+    def test_diagram_directory(self):
+        """Test we can get the diagram directory properly."""
+        path = diagram_directory()
+        self.assertTrue(os.path.exists(path))
 
 if __name__ == '__main__':
     unittest.main()

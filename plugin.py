@@ -34,8 +34,6 @@ import logging
 # do it before Qt imports
 import qgis  # pylint: disable=W0611
 
-# from pydev import pydevd  # pylint: disable=F0401
-
 from PyQt4.QtCore import (
     Qt,
     QSettings,
@@ -47,12 +45,17 @@ from PyQt4.QtGui import (
     QAction,
     QIcon,
     QProgressBar)
-from qgis.core import QgsMapLayerRegistry
+from qgis.core import QgsMapLayerRegistry, QgsVectorLayer
 from qgis.gui import QgsMessageBar
+
+from sg_action import SGAction
+
 # Initialize Qt resources from file resources.py
 import resources_rc
 # Import the code for the dialog
-from download_dialog import DownloadDialog
+from sg_downloader import DownloadDialog
+
+# from pydev import pydevd  # pylint: disable=F0401
 
 MENU_GROUP_LABEL = u'SG Diagram Downloader'
 MENU_RUN_LABEL = u'Download Surveyor General Diagram'
@@ -90,7 +93,17 @@ class SGDiagramDownloader:
         self.toolbar = self.iface.addToolBar(MENU_GROUP_LABEL)
         self.toolbar.setObjectName(u'SGDiagramDownloader')
 
-        # noinspection PyMethodMayBeStatic
+        self.province_layer = QgsVectorLayer(
+            os.path.join(os.path.dirname(__file__), 'data', 'provinces.shp'),
+            'provinces',
+            'ogr')
+
+        if self.province_layer is None:
+            LOGGER.error('Could not load provinces layer.')
+        else:
+            LOGGER.error('Provinces loaded ok.')
+
+    # noinspection PyMethodMayBeStatic
     def tr(self, message):
         """Get the translation for a string using Qt translation API.
 
@@ -144,15 +157,17 @@ class SGDiagramDownloader:
             hovers over the action.
         :type status_tip: str
 
-        :param parent: Parent widget for the new action. Defaults None.
-        :type parent: QWidget
-
         :param whats_this: Optional text to show in the status bar when the
             mouse pointer hovers over the action.
+        :type whats_this: str
+
+        :param parent: Parent widget for the new action. Defaults None.
+        :type parent: QWidget
 
         :returns: The action that was created. Note that the action is also
             added to self.actions list.
         :rtype: QAction
+
         """
 
         icon = QIcon(icon_path)
@@ -190,6 +205,17 @@ class SGDiagramDownloader:
             parent=self.iface.mainWindow(),
             add_to_toolbar=True,
             add_to_menu=True)
+        # Special case setup for our map tool which uses custom QAction
+        icon = QIcon(':/plugins/SGDiagramDownloader/maptool.svg')
+        map_tool = SGAction(
+            icon,
+            self.iface,
+            self.province_layer,
+            'Interactive Downloader',
+            'Click on a parcel to download its SG Diagram.')
+        self.toolbar.addAction(map_tool)
+        self.iface.addPluginToVectorMenu(self.menu, map_tool)
+        self.actions.append(map_tool)
 
     def unload(self):
         """Removes the plugin menu item and icon from QGIS GUI."""
@@ -202,5 +228,6 @@ class SGDiagramDownloader:
     # @staticmethod
     def show_download_dialog(self):
         """Show the download dialog."""
-        dialog = DownloadDialog(self.iface)
+        dialog = DownloadDialog(
+            self.iface, provinces_layer=self.province_layer)
         dialog.exec_()  # modal

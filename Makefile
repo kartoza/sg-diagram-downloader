@@ -31,21 +31,20 @@ PLUGINNAME = SGDiagramDownloader
 PY_FILES = \
 	__init__.py \
 	custom_logging.py \
-	sg_diagram_downloader.py \
-	download_dialog.py \
-	sg_download_utilities.py
+	plugin.py \
+	sg_downloader.py \
+	sg_utilities.py \
+	sg_action.py \
+	sg_map_tool.py
 
 EXTRAS = icon.png metadata.txt LICENSE README.md
 
 STYLES = styles
 
 UI_FILES = \
-	download_dialog_base.ui
+	sg_downloader_base.ui
 
 COMPILED_RESOURCE_FILES = resources_rc.py
-
-# For debug deploys
-PYDEV = pydev
 
 #################################################
 # Normally you would not need to edit below here
@@ -84,7 +83,7 @@ test_code: compile # transcompile
 		--cover-package= . \
 		3>&1 1>&2 2>&3 3>&- || true
 
-deploy: compile doc transcompile 
+deploy: compile doc transcompile
 	@echo
 	@echo "------------------------------------------"
 	@echo "Deploying plugin to your .qgis2 directory."
@@ -101,7 +100,7 @@ deploy: compile doc transcompile
 	cp -vfr $(HELP) $(HOME)/$(QGISDIR)/python/plugins/$(PLUGINNAME)/help
 	cp -vfr $(THIRD_PARTY) $(HOME)/$(QGISDIR)/python/plugins/$(PLUGINNAME)/
 
-fastdeploy: derase compile 	
+fastdeploy: derase compile
 	@echo
 	@echo "------------------------------------------"
 	@echo "Fast Deploying plugin to your .qgis2 directory."
@@ -116,18 +115,6 @@ fastdeploy: derase compile
 	mkdir -p $(HOME)/$(QGISDIR)/python/plugins/$(PLUGINNAME)/i18n
 	cp -vfr $(THIRD_PARTY) $(HOME)/$(QGISDIR)/python/plugins/$(PLUGINNAME)/
 	cp -vfr $(DATA_DIR) $(HOME)/$(QGISDIR)/python/plugins/$(PLUGINNAME)/
-
-debugdeploy: deploy
-	@echo
-	@echo "------------------------------------------"
-	@echo "Deploying pydev debug libs."
-	@echo "------------------------------------------"
-	# The deploy  target only works on unix like operating system where
-	# the Python plugin directory is located at:
-	# $HOME/$(QGISDIR)/python/plugins
-	mkdir -p $(HOME)/$(QGISDIR)/python/plugins/$(PLUGINNAME)
-	cp -rvf $(PYDEV) $(HOME)/$(QGISDIR)/python/plugins/$(PLUGINNAME)
-	cp -vfr $(THIRD_PARTY) $(HOME)/$(QGISDIR)/python/plugins/$(PLUGINNAME)/third_party
 
 # The dclean target removes compiled python files from plugin directory
 dclean:
@@ -210,9 +197,9 @@ doc:
 	@echo "------------------------------------"
 	cd help; make clean; make html
 
-# Note that make runs commands in a subshell so 
+# Note that make runs commands in a subshell so
 # variable context is lost from one line to the next
-# So we need to do everything as a single line command 
+# So we need to do everything as a single line command
 tag:
 	@echo
 	@echo "------------------------------------"
@@ -221,7 +208,7 @@ tag:
 	@read -p "Version e.g. 1_0_0: " VERSION; \
 	git tag -s version-$$VERSION -m "Version $$VERSION" && \
 	git push --tags origin version-$$VERSION
-	
+
 pylint:
 	@echo
 	@echo "-----------------"

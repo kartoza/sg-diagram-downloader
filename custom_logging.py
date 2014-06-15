@@ -1,6 +1,6 @@
 # coding=utf-8
 """
-Custom logging for Stream feature extractor.
+Custom logging setup.
 
 .. note:: This program is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published by
@@ -34,7 +34,7 @@ from raven.handlers.logging import SentryHandler
 # noinspection PyUnresolvedReferences
 from raven import Client
 # pylint: enable=F0401
-LOGGER = logging.getLogger('SG-D')
+LOGGER = logging.getLogger('QGIS')
 
 
 def log_file_path():
@@ -45,7 +45,6 @@ def log_file_path():
     """
     log_temp_dir = temp_dir('logs')
     path = os.path.join(log_temp_dir, 'sg-diagram-downloader.log')
-    print path, 'AAAAAAAAAAAAAAA'
     return path
 
 
@@ -128,7 +127,7 @@ def setup_logger(sentry_url, log_file=None):
     In a module that wants to do logging then use this example as
     a guide to get the initialised logger instance::
 
-       # The LOGGER is initialised in sg_download_utilities.py by init
+       # The LOGGER is initialised in sg_utilities.py by init
        import logging
        LOGGER = logging.getLogger('QGIS')
 

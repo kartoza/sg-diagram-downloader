@@ -45,20 +45,26 @@ from PyQt4.QtGui import QProgressBar
 from PyQt4.QtCore import pyqtSignature, QSettings
 from qgis.gui import QgsMessageBar
 
-from sg_download_utilities import download_sg_diagrams
+from sg_utilities import download_sg_diagrams
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
-    os.path.dirname(__file__), 'download_dialog_base.ui'))
+    os.path.dirname(__file__), 'sg_downloader_base.ui'))
 
-# from pydev import pydevd  # pylint: disable=F0401
-
-LOGGER = logging.getLogger('SG-D')
+LOGGER = logging.getLogger('QGIS')
 
 
 # noinspection PyArgumentList
 class DownloadDialog(QtGui.QDialog, FORM_CLASS):
-    def __init__(self, iface, parent=None):
-        """Constructor."""
+    """GUI for downloading SG Plans."""
+    def __init__(self, iface, provinces_layer, parent=None):
+        """Constructor.
+
+
+
+        :param iface:
+        :param provinces_layer:
+        :param parent:
+        """
         super(DownloadDialog, self).__init__(parent)
         # Set up the user interface from Designer.
         # After setupUI you can access any designer object by doing
@@ -67,18 +73,11 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
         # #widgets-and-dialogs-with-auto-connect
         QtGui.QDialog.__init__(self, parent)
         self.setupUi(self)
-        # Enable remote debugging - should normally be commented out.
-        # pydevd.settrace(
-        #    'localhost', port=5678, stdoutToServer=True,
-        #    stderrToServer=True)
         self.message_bar = None
         self.iface = iface
         self.populate_combo_box()
-        # TODO: Why do we have this hardcodede?
-        self.province_layer = QgsVectorLayer(
-            os.path.join(os.path.dirname(__file__),'data', 'provinces.shp'),
-            'provinces',
-            'ogr')
+        self.provinces_layer = provinces_layer
+
         self.site_layer = None
         self.parcel_layer = None
         self.sg_code_field = None
@@ -103,7 +102,6 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
         if found_flag:
             self.combo_box_site_layer.setCurrentIndex(0)
             self.combo_box_parcel_layer.setCurrentIndex(0)
-
 
     # noinspection PyPep8Naming
     @pyqtSignature('int')
@@ -200,6 +198,7 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
             self.iface.mainWindow())
 
         progress_bar = QProgressBar()
+        progress_bar.setMaximumWidth(150)
         progress_bar.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         message_bar.layout().addWidget(progress_bar)
         self.iface.messageBar().pushWidget(
@@ -226,14 +225,12 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
                 progress_bar.setMaximum(maximum)
                 progress_bar.setValue(current)
 
-        print datetime.now(), '188'
-
         download_sg_diagrams(
             self.site_layer,
             self.parcel_layer,
             self.sg_code_field,
             self.output_directory,
-            self.province_layer,
+            self.provinces_layer,
             callback=progress_callback)
 
         print datetime.now(), '198'
