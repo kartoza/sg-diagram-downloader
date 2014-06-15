@@ -230,7 +230,7 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
             self.parcel_layer,
             self.sg_code_field,
             self.output_directory,
-            self.province_layer,
+            self.provinces_layer,
             callback=progress_callback)
 
         print datetime.now(), '198'
