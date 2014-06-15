@@ -50,13 +50,12 @@ from sg_download_utilities import download_sg_diagrams
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'download_dialog_base.ui'))
 
-# from pydev import pydevd  # pylint: disable=F0401
-
 LOGGER = logging.getLogger('SG-D')
 
 
 # noinspection PyArgumentList
 class DownloadDialog(QtGui.QDialog, FORM_CLASS):
+    """GUI for downloading SG Plans."""
     def __init__(self, iface, parent=None):
         """Constructor."""
         super(DownloadDialog, self).__init__(parent)
@@ -67,18 +66,17 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
         # #widgets-and-dialogs-with-auto-connect
         QtGui.QDialog.__init__(self, parent)
         self.setupUi(self)
-        # Enable remote debugging - should normally be commented out.
-        # pydevd.settrace(
-        #    'localhost', port=5678, stdoutToServer=True,
-        #    stderrToServer=True)
         self.message_bar = None
         self.iface = iface
         self.populate_combo_box()
-        # TODO: Why do we have this hardcodede?
         self.province_layer = QgsVectorLayer(
-            os.path.join(os.path.dirname(__file__),'data', 'provinces.shp'),
+            os.path.join(os.path.dirname(__file__), 'data', 'provinces.shp'),
             'provinces',
             'ogr')
+        if self.province_layer is None:
+            LOGGER.error('Could not load provinces layer.')
+        else:
+            LOGGER.error('Provinces loaded ok.')
         self.site_layer = None
         self.parcel_layer = None
         self.sg_code_field = None
@@ -103,7 +101,6 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
         if found_flag:
             self.combo_box_site_layer.setCurrentIndex(0)
             self.combo_box_parcel_layer.setCurrentIndex(0)
-
 
     # noinspection PyPep8Naming
     @pyqtSignature('int')

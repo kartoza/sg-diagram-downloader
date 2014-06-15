@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>520</width>
-    <height>420</height>
+    <width>552</width>
+    <height>446</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -30,8 +30,8 @@
        <rect>
         <x>0</x>
         <y>0</y>
-        <width>502</width>
-        <height>369</height>
+        <width>534</width>
+        <height>395</height>
        </rect>
       </property>
       <layout class="QVBoxLayout" name="verticalLayout">
@@ -51,7 +51,7 @@
        <item>
         <widget class="QLabel" name="label">
          <property name="text">
-          <string>Choose a layer with at least one 'site' polygon (e.g. a dam) selected. The selected polygon(s) will be used to select parcels in the parcel layer.</string>
+          <string>Choose a layer containing 'site' polygon (e.g. a dam or area slated for development) selected. The polygon(s) in this layer will be used to select parcels in the parcel layer.</string>
          </property>
          <property name="wordWrap">
           <bool>true</bool>
@@ -71,9 +71,23 @@
           </widget>
          </item>
          <item>
-          <widget class="QComboBox" name="combo_box_site_layer"/>
+          <widget class="QComboBox" name="combo_box_site_layer">
+           <property name="styleSheet">
+            <string notr="true"/>
+           </property>
+          </widget>
          </item>
         </layout>
+       </item>
+       <item>
+        <widget class="QCheckBox" name="selected_sites_only">
+         <property name="text">
+          <string>Use only selected sites. Leave unchecked to fetch plans for all sites.</string>
+         </property>
+         <property name="checked">
+          <bool>true</bool>
+         </property>
+        </widget>
        </item>
        <item>
         <widget class="QLabel" name="label_2">
@@ -174,13 +188,14 @@
   </layout>
  </widget>
  <tabstops>
-  <tabstop>scrollArea</tabstop>
   <tabstop>combo_box_site_layer</tabstop>
+  <tabstop>selected_sites_only</tabstop>
   <tabstop>combo_box_parcel_layer</tabstop>
   <tabstop>combo_box_sg_code_field</tabstop>
   <tabstop>line_edit_output_directory</tabstop>
   <tabstop>output_directory_button</tabstop>
   <tabstop>buttonBox</tabstop>
+  <tabstop>scrollArea</tabstop>
  </tabstops>
  <resources/>
  <connections>
