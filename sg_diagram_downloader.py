@@ -206,7 +206,9 @@ class SGDiagramDownloader:
             add_to_toolbar=True,
             add_to_menu=True)
         # Special case setup for our map tool which uses custom QAction
+        icon = QIcon(':/plugins/SGDiagramDownloader/maptool.svg')
         map_tool = SGAction(
+            icon,
             self.iface,
             self.province_layer,
             'Interactive Downloader',

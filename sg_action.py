@@ -9,16 +9,17 @@ from sg_map_tool import SGMapTool
 
 class SGAction(QAction):
     """Custom QAction that will invoke the sg_map_tool when clicked."""
-    def __init__(self, iface, provinces_layer, menu_text, whats_this_text):
+    def __init__(self, icon, iface, provinces_layer, menu_text, whats_this_text):
         """Constructor."""
         main_window = iface.mainWindow()
-        QAction.__init__(self, menu_text, main_window)
+        QAction.__init__(self, icon, menu_text, main_window)
         self.setWhatsThis(whats_this_text)
         self.iface = iface
         self.provinces_layer = provinces_layer
         self.activated.connect(self.run)
         self.iface.currentLayerChanged.connect(self.set_enabled_state)
         self.tool = SGMapTool(self.iface, self.provinces_layer)
+        self.set_enabled_state(self.iface.mapCanvas().currentLayer())
 
     def _disable(self):
         """Disabled the map tool."""
