@@ -26,6 +26,7 @@ __date__ = '30/05/2014'
 __copyright__ = ''
 
 import os
+from datetime import datetime
 
 from qgis.core import (
     QgsVectorLayer,
@@ -49,7 +50,6 @@ if third_party_path not in sys.path:
 from bs4 import BeautifulSoup
 # pylint: enable=F0401
 
-import logging
 from custom_logging import LOGGER
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
@@ -115,7 +115,7 @@ def construct_url(sg_code=None, province=None):
     reg_division = sg_code[:8]
 
     record = get_office(reg_division, province)
-    if bool(record) is None:
+    if record is None or bool(record) is None:
         raise Exception('SG code and province is not found in database')
     office, office_number, typology = record
 
@@ -228,11 +228,19 @@ def download_sg_diagram(sg_code, province, output_directory, callback=None):
         should accept params 'current' (int) and 'maximum' (int). Defaults to
         None.
     :type callback: function
+
+    :returns: A report listing which files were downloaded and their
+        download failure or success.
+    :rtype: str
     """
     if callback is None:
         callback = print_progress_callback
 
-    download_page = construct_url(sg_code, province)
+    try:
+        download_page = construct_url(sg_code, province)
+    except Exception, e:
+        LOGGER.exception('Error constructing url')
+        raise
     print 'Download page: %s' % download_page
     # Parse link here
     download_links = parse_download_page(download_page)
@@ -240,28 +248,36 @@ def download_sg_diagram(sg_code, province, output_directory, callback=None):
     output_directory = os.path.join(output_directory, sg_code)
     if not os.path.exists(output_directory):
         os.mkdir(output_directory)
-    i = 0
+
+    count = 0
+    total = len(download_links)
+    report = 'Downloading documents for %s in %s\n' % (sg_code, province)
+
     for download_link in download_links:
-        i += 1
+        count += 1
+        callback(count, total, 'Downloading file %s of %s' % (count, total))
+
         try:
             file_path = download_from_url(download_link, output_directory)
         except Exception as e:
-            message = (
-                '%s %s %d %d False %s' % (
-                    sg_code, province, i, len(download_links), e))
+            message = 'Failed to download %s' % download_link
             LOGGER.exception(message)
             raise Exception(str(e) + message)
 
         if file_path is not None:
-            message = (
-                '%s %s %d %d True %s' % (
-                    sg_code, province, i, len(download_links), file_path))
-            LOGGER.debug(message)
+            status = 'Success'
         else:
-            message = (
-                '%s %s %d %d False N/A' % (
-                    sg_code, province, i, len(download_links)))
-            LOGGER.debug(message)
+            status = 'Error'
+
+        report += '%s: File %i of %i : %s saved to %s\n' % (
+            status,
+            count,
+            total,
+            download_link,
+            file_path
+        )
+    callback(count, total, 'Downloads completed')
+    return report
 
 
 def get_spatial_index(data_provider):
@@ -272,6 +288,7 @@ def get_spatial_index(data_provider):
     """
     qgs_feature = QgsFeature()
     index = QgsSpatialIndex()
+    # noinspection PyUnresolvedReferences
     qgs_features = data_provider.getFeatures()
     while qgs_features.nextFeature(qgs_feature):
         index.insertFeature(qgs_feature)
@@ -295,7 +312,9 @@ def province_for_point(centroid, provinces_layer):
     :rtype:
     """
     province_name = 'Null'
+    # noinspection PyUnresolvedReferences
     provinces_data_provider = provinces_layer.dataProvider()
+    # noinspection PyUnresolvedReferences
     province_index = provinces_layer.fieldNameIndex('province')
     province_feature = QgsFeature()
     provinces_data_features = provinces_data_provider.getFeatures()
@@ -356,6 +375,7 @@ def map_sg_codes_to_provinces(
         sg_code = feature.attributes()[sg_code_index]
         geometry = feature.geometry()
         centroid = geometry.centroid().asPoint()
+        # noinspection PyTypeChecker
         province_name = province_for_point(centroid, provinces_layer)
         sg_code_provinces[sg_code] = province_name
 
@@ -405,6 +425,10 @@ def download_sg_diagrams(
         should accept params 'current' (int) and 'maximum' (int). Defaults to
         None.
     :type callback: function
+
+    :returns: A report listing which files were downloaded and their
+        download failure or success.
+    :rtype: str
     """
     if callback is None:
         callback = print_progress_callback
@@ -413,16 +437,28 @@ def download_sg_diagrams(
         site_layer, diagram_layer, sg_code_field, provinces_layer)
     maximum = len(sg_codes_and_provinces)
     current = 0
+    result = 'Fetching diagrams for %i SG Codes.\n'
+    result += '====================================\n'
     for sg_code, province in sg_codes_and_provinces.iteritems():
-        message = 'Downloading %s (%d of %d)' % (sg_code, current + 1, maximum)
-        callback(current, maximum, message)
-        try:
-            download_sg_diagram(sg_code, province, output_directory)
-        except Exception, e:
-            print 'Failed to download %s %s' % (sg_code, province), e
         current += 1
-        from datetime import datetime
-        print datetime.now(), message
+        message = '%s Downloading %s\n' % (datetime.now(), sg_code)
+        callback(current, maximum, message)
+        result += message
+
+        try:
+            result += download_sg_diagram(
+                sg_code,
+                province,
+                output_directory,
+                callback)
+        except Exception, e:
+            result += 'Failed to download %s %s\n' % (sg_code, province), e
+            LOGGER.exception(e)
+
+    log = file('sg_downloader.log', 'a')
+    log.write(result)
+    log.close()
+    return result
 
 
 if __name__ == '__main__':

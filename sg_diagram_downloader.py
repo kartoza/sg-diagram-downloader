@@ -45,7 +45,7 @@ from PyQt4.QtGui import (
     QAction,
     QIcon,
     QProgressBar)
-from qgis.core import QgsMapLayerRegistry
+from qgis.core import QgsMapLayerRegistry, QgsVectorLayer
 from qgis.gui import QgsMessageBar
 
 from sg_action import SGAction
@@ -55,7 +55,7 @@ import resources_rc
 # Import the code for the dialog
 from download_dialog import DownloadDialog
 
-from pydev import pydevd  # pylint: disable=F0401
+# from pydev import pydevd  # pylint: disable=F0401
 
 MENU_GROUP_LABEL = u'SG Diagram Downloader'
 MENU_RUN_LABEL = u'Download Surveyor General Diagram'
@@ -74,9 +74,9 @@ class SGDiagramDownloader:
         :type iface: QgsInterface
         """
         # Enable remote debugging - should normally be commented out.
-        pydevd.settrace(
-           'localhost', port=5678, stdoutToServer=True,
-            stderrToServer=True)
+        # pydevd.settrace(
+        #    'localhost', port=5678, stdoutToServer=True,
+        #     stderrToServer=True)
 
         # Save reference to the QGIS interface
         self.iface = iface
@@ -93,7 +93,17 @@ class SGDiagramDownloader:
         self.toolbar = self.iface.addToolBar(MENU_GROUP_LABEL)
         self.toolbar.setObjectName(u'SGDiagramDownloader')
 
-        # noinspection PyMethodMayBeStatic
+        self.province_layer = QgsVectorLayer(
+            os.path.join(os.path.dirname(__file__), 'data', 'provinces.shp'),
+            'provinces',
+            'ogr')
+
+        if self.province_layer is None:
+            LOGGER.error('Could not load provinces layer.')
+        else:
+            LOGGER.error('Provinces loaded ok.')
+
+    # noinspection PyMethodMayBeStatic
     def tr(self, message):
         """Get the translation for a string using Qt translation API.
 
@@ -198,6 +208,7 @@ class SGDiagramDownloader:
         # Special case setup for our map tool which uses custom QAction
         map_tool = SGAction(
             self.iface,
+            self.province_layer,
             'Interactive Downloader',
             'Click on a parcel to download its SG Diagram.')
         self.toolbar.addAction(map_tool)
@@ -215,5 +226,6 @@ class SGDiagramDownloader:
     # @staticmethod
     def show_download_dialog(self):
         """Show the download dialog."""
-        dialog = DownloadDialog(self.iface)
+        dialog = DownloadDialog(
+            self.iface, provinces_layer=self.province_layer)
         dialog.exec_()  # modal

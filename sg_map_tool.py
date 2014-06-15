@@ -5,6 +5,10 @@ import qgis
 
 from PyQt4.QtCore import Qt, QRegExp
 from PyQt4.QtGui import QRegExpValidator, QValidator
+from PyQt4.QtCore import Qt
+from PyQt4.QtGui import QProgressBar
+from PyQt4.QtCore import pyqtSignature, QSettings
+from qgis.gui import QgsMessageBar
 
 from qgis.core import (
     QgsFeature,
@@ -12,21 +16,27 @@ from qgis.core import (
     QgsRectangle)
 from qgis.gui import QgsMapTool, QgsMessageBar
 
+from sg_download_utilities import download_sg_diagram, province_for_point
+
 
 class SGMapTool(QgsMapTool):
     """A map tool that lets you click on a parcel to download its SG Diagram.
     """
 
-    def __init__(self, iface):
+    def __init__(self, iface, provinces_layer):
         """Constructor.
 
         :param iface: A QGIS QgisInterface instance.
         :type iface: QgisInterface
+
+        :param provinces_layer: A layer containing provincial boundaries.
+        :type provinces_layer: QgsVectorLayer
         """
         canvas = iface.mapCanvas()
         QgsMapTool.__init__(self, canvas)
         self.canvas = canvas
         self.iface = iface
+        self.provinces_layer = provinces_layer
         self.iface.messageBar().pushMessage(
             self.tr('SG Downloader.'),
             self.tr('Click on a polygon with a 21 Digit code attribute'),
@@ -57,6 +67,24 @@ class SGMapTool(QgsMapTool):
         """
         if not event.button() == Qt.LeftButton:
             return
+
+        def progress_callback(current, maximum, message=None):
+            """GUI based callback implementation for showing progress.
+
+            :param current: Current progress.
+            :type current: int
+
+            :param maximum: Maximum range (point at which task is complete.
+            :type maximum: int
+
+            :param message: Optional message to display in the progress bar
+            :type message: str, QString
+            """
+            if message is not None:
+                self.message_bar.setText(message)
+            if self.progress_bar is not None:
+                self.progress_bar.setMaximum(maximum)
+                self.progress_bar.setValue(current)
 
         # No need to check that it is a valid, polygon layer
         # as the QAction for this map tool already does that
@@ -93,6 +121,19 @@ class SGMapTool(QgsMapTool):
             if field.typeName() == 'TEXT':
                 text_fields.append(field)
 
+        self.message_bar = self.iface.messageBar().createMessage(
+            self.tr('Download SG Diagram'),
+            self.tr('Please stand by while download process is in progress.'),
+            self.iface.mainWindow())
+
+        # Set up message bar for progress reporting
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setMaximumWidth(150)
+        self.progress_bar.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        self.message_bar.layout().addWidget(self.progress_bar)
+        self.iface.messageBar().pushWidget(
+            self.message_bar, self.iface.messageBar().INFO)
+
         sg_field = None
         while polygons.nextFeature(feature):
             geom = feature.geometry()
@@ -120,9 +161,22 @@ class SGMapTool(QgsMapTool):
                 self.tr('No parcels found with a valid 21 Digit code'),
                 level=QgsMessageBar.INFO,
                 duration=10)
-        else:
-            self.iface.messageBar().pushMessage(
-                self.tr('SG Downloader.'),
-                self.tr('Fetching diagrams for %s parcels.' % len(fetch_list)),
-                level=QgsMessageBar.INFO,
-                duration=10)
+            return
+
+        province = province_for_point(place, self.provinces_layer)
+        result = ''
+        for sg_code in fetch_list:
+            result += download_sg_diagram(
+                sg_code,
+                province,
+                '/tmp',
+                progress_callback)
+
+        del self.message_bar
+
+        log = file('sg_downloader.log', 'a')
+        log.write(result)
+        log.close()
+        # Cant return string from canvas release event
+        #return result
+

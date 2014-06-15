@@ -34,7 +34,7 @@ from raven.handlers.logging import SentryHandler
 # noinspection PyUnresolvedReferences
 from raven import Client
 # pylint: enable=F0401
-LOGGER = logging.getLogger('SG-D')
+LOGGER = logging.getLogger('QGIS')
 
 
 def log_file_path():
@@ -45,7 +45,6 @@ def log_file_path():
     """
     log_temp_dir = temp_dir('logs')
     path = os.path.join(log_temp_dir, 'sg-diagram-downloader.log')
-    print path, 'AAAAAAAAAAAAAAA'
     return path
 
 

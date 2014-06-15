@@ -56,8 +56,15 @@ LOGGER = logging.getLogger('SG-D')
 # noinspection PyArgumentList
 class DownloadDialog(QtGui.QDialog, FORM_CLASS):
     """GUI for downloading SG Plans."""
-    def __init__(self, iface, parent=None):
-        """Constructor."""
+    def __init__(self, iface, provinces_layer, parent=None):
+        """Constructor.
+
+
+
+        :param iface:
+        :param provinces_layer:
+        :param parent:
+        """
         super(DownloadDialog, self).__init__(parent)
         # Set up the user interface from Designer.
         # After setupUI you can access any designer object by doing
@@ -69,14 +76,8 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
         self.message_bar = None
         self.iface = iface
         self.populate_combo_box()
-        self.province_layer = QgsVectorLayer(
-            os.path.join(os.path.dirname(__file__), 'data', 'provinces.shp'),
-            'provinces',
-            'ogr')
-        if self.province_layer is None:
-            LOGGER.error('Could not load provinces layer.')
-        else:
-            LOGGER.error('Provinces loaded ok.')
+        self.provinces_layer = provinces_layer
+
         self.site_layer = None
         self.parcel_layer = None
         self.sg_code_field = None
@@ -197,6 +198,7 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
             self.iface.mainWindow())
 
         progress_bar = QProgressBar()
+        progress_bar.setMaximumWidth(150)
         progress_bar.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         message_bar.layout().addWidget(progress_bar)
         self.iface.messageBar().pushWidget(
@@ -222,8 +224,6 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
             if progress_bar is not None:
                 progress_bar.setMaximum(maximum)
                 progress_bar.setValue(current)
-
-        print datetime.now(), '188'
 
         download_sg_diagrams(
             self.site_layer,
