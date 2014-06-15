@@ -45,6 +45,6 @@ custom_logging.setup_logger(SENTRY_URL)
 def classFactory(iface):  # pylint: disable=invalid-name
     """load SGDiagramDownloader class from file SGDiagramDownloader."""
     # pylint: disable=relative-import
-    from sg_diagram_downloader import SGDiagramDownloader
+    from plugin import SGDiagramDownloader
     # pylint: enable=relative-import
     return SGDiagramDownloader(iface)

@@ -31,9 +31,9 @@ PLUGINNAME = SGDiagramDownloader
 PY_FILES = \
 	__init__.py \
 	custom_logging.py \
-	sg_diagram_downloader.py \
-	download_dialog.py \
-	sg_download_utilities.py \
+	plugin.py \
+	sg_downloader.py \
+	sg_utilities.py \
 	sg_action.py \
 	sg_map_tool.py
 
@@ -42,7 +42,7 @@ EXTRAS = icon.png metadata.txt LICENSE README.md
 STYLES = styles
 
 UI_FILES = \
-	download_dialog_base.ui
+	sg_downloader_base.ui
 
 COMPILED_RESOURCE_FILES = resources_rc.py
 

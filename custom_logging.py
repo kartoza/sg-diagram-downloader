@@ -127,7 +127,7 @@ def setup_logger(sentry_url, log_file=None):
     In a module that wants to do logging then use this example as
     a guide to get the initialised logger instance::
 
-       # The LOGGER is initialised in sg_download_utilities.py by init
+       # The LOGGER is initialised in sg_utilities.py by init
        import logging
        LOGGER = logging.getLogger('QGIS')
 

@@ -53,7 +53,7 @@ from sg_action import SGAction
 # Initialize Qt resources from file resources.py
 import resources_rc
 # Import the code for the dialog
-from download_dialog import DownloadDialog
+from sg_downloader import DownloadDialog
 
 # from pydev import pydevd  # pylint: disable=F0401
 

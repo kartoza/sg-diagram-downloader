@@ -2,24 +2,22 @@
 """Implementation for SG Downloader map tool."""
 
 
-import os
 # Enable SIP v2
 
 #from PyQt4.QtGui import QRegExpValidator, QValidator
 from PyQt4.QtCore import Qt
 from PyQt4.QtGui import QProgressBar
-from PyQt4.QtCore import QSettings
-
 from qgis.core import (
     QgsFeature,
     QgsFeatureRequest)
 from qgis.gui import QgsMapTool, QgsMessageBar
 
-from sg_download_utilities import (
+from sg_utilities import (
     download_sg_diagram,
     province_for_point,
     is_valid_sg_code,
-    point_to_rectangle)
+    point_to_rectangle,
+    diagram_directory)
 
 
 class SGMapTool(QgsMapTool):
@@ -161,15 +159,13 @@ class SGMapTool(QgsMapTool):
 
         province = province_for_point(place, self.provinces_layer)
         result = ''
-        settings = QSettings()
-        output_path = settings.value(
-            'SGDownloader/output_path',
-            os.path.join(os.dirname(__file__), 'diagrams'))
+        output_path = diagram_directory()
+
         for sg_code in fetch_list:
             result += download_sg_diagram(
                 sg_code,
                 province,
-                '/tmp',
+                output_path,
                 progress_callback)
 
         log = file('sg_downloader.log', 'a')

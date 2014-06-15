@@ -45,12 +45,12 @@ from PyQt4.QtGui import QProgressBar
 from PyQt4.QtCore import pyqtSignature, QSettings
 from qgis.gui import QgsMessageBar
 
-from sg_download_utilities import download_sg_diagrams
+from sg_utilities import download_sg_diagrams
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
-    os.path.dirname(__file__), 'download_dialog_base.ui'))
+    os.path.dirname(__file__), 'sg_downloader_base.ui'))
 
-LOGGER = logging.getLogger('SG-D')
+LOGGER = logging.getLogger('QGIS')
 
 
 # noinspection PyArgumentList

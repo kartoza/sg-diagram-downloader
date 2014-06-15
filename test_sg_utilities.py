@@ -19,14 +19,15 @@ from qgis.core import QgsPoint, QgsRectangle
 
 from test.utilities_for_testing import (
     get_temp_shapefile_layer, TEMP_DIR, get_random_string)
-from sg_download_utilities import (
+from sg_utilities import (
     map_sg_codes_to_provinces,
     download_from_url,
     get_office,
     parse_download_page,
     get_filename,
     is_valid_sg_code,
-    point_to_rectangle)
+    point_to_rectangle,
+    diagram_directory)
 
 
 DATA_TEST_DIR = os.path.join(os.path.dirname(__file__), 'test', 'data')
@@ -136,6 +137,11 @@ class TestUtilities(unittest.TestCase):
             1.0000000000100000,
             1.0000000000100000)
         self.assertEqual(rectangle.toString(), expected_rectangle.toString())
+
+    def test_diagram_directory(self):
+        """Test we can get the diagram directory properly."""
+        path = diagram_directory()
+        self.assertTrue(os.path.exists(path))
 
 if __name__ == '__main__':
     unittest.main()

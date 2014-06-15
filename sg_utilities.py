@@ -19,7 +19,7 @@ Utilities for Surveyor General Diagram
  *                                                                         *
  ***************************************************************************/
 """
-from PyQt4.QtCore import QRegExp, Qt
+from PyQt4.QtCore import QRegExp, Qt, QSettings
 
 __author__ = 'ismail@linfiniti.com'
 __revision__ = '$Format:%H$'
@@ -106,7 +106,7 @@ def construct_url(sg_code=None, province=None):
     if len(sg_code) != 21:
         raise Exception('length sg code is not 21')
 
-    print 'Constructing url for %s %s' % (sg_code, province)
+    LOGGER.info('Constructing url for %s %s' % (sg_code, province))
     if sg_code is None or province is None:
         return (
             'http://csg.dla.gov.za/esio/listdocument.jsp?regDivision=C0160013'
@@ -145,7 +145,7 @@ def get_filename(url):
     return file_name
 
 
-def download_from_url(url, output_directory, filename=None):
+def download_from_url(url, output_directory, filename=None, use_cache=True):
     """Download file from a url and put it under output_directory.
 
     :param url: Url that gives response.
@@ -157,15 +157,19 @@ def download_from_url(url, output_directory, filename=None):
     :param filename: Optional filename for downloaded file.
     :type filename: str
 
+    :param use_cache: If there is a cached copy of the file already in the
+        output directory, do not refetch it (True) or force refecth it (False).
+    :type use_cache: bool
+
     :returns: File path if success to download, else None
     :rtype: str
     """
     if filename is None:
         filename = get_filename(url)
-    print 'Download file %s from %s' % (filename, url)
+    LOGGER.info('Download file %s from %s' % (filename, url))
     file_path = os.path.join(output_directory, filename)
-    if os.path.exists(file_path):
-        print 'File %s existed, not downloading' % file_path
+    if os.path.exists(file_path) and use_cache:
+        LOGGER.info('File %s exists, not downloading' % file_path)
         return file_path
 
     try:
@@ -466,7 +470,7 @@ def is_valid_sg_code(value):
     """Check if a string is a valid SG Code.
 
     :param value: The string to be tested.
-    :type value: bool
+    :type value: str
 
     :returns: True if the code is valid, otherwise False.
     :rtype: bool
@@ -516,3 +520,19 @@ def point_to_rectangle(point):
         x_maximum,
         y_maximum)
     return rectangle
+
+
+def diagram_directory():
+    """Get the output path for writing diagrams to.
+
+    :return: The path to the parent diagram dir. Actual diagrams should
+        be written to subdirectories of this path.
+    :rtype: str
+    """
+    settings = QSettings()
+    output_path = settings.value(
+        'SGDownloader/output_path',
+        os.path.join(os.path.dirname(__file__), 'diagrams'))
+    if not os.path.exists(output_path):
+        os.mkdir(output_path)
+    return output_path
