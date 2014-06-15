@@ -153,6 +153,9 @@ def download_from_url(url, output_directory, filename=None):
     :param output_directory: Directory to put the diagram.
     :type output_directory: str
 
+    :param filename: Optional filename for downloaded file.
+    :type filename: str
+
     :returns: File path if success to download, else None
     :rtype: str
     """
@@ -196,7 +199,7 @@ def parse_download_page(download_page_url):
     :rtype: list
     """
     download_urls = []
-    prefix_url = 'http://csg.dla.gov.za/esio/'
+    url_prefix = 'http://csg.dla.gov.za/esio/'
     html = urllib.urlopen(download_page_url)
     download_page_soup = BeautifulSoup(html)
     urls = download_page_soup.find_all('a')
@@ -204,12 +207,12 @@ def parse_download_page(download_page_url):
         full_url = url['href']
         if full_url[0:2] == './':
             full_url = full_url[2:]
-        full_url = prefix_url + full_url
+        full_url = url_prefix + full_url
         download_urls.append(str(full_url))
     return download_urls
 
 
-def download_sg_diagram(sg_code, province, output_directory):
+def download_sg_diagram(sg_code, province, output_directory, callback=None):
     """Download sg diagram using sg_code and put it under output_directory.
 
     :param sg_code: Surveyor General code.
@@ -220,7 +223,15 @@ def download_sg_diagram(sg_code, province, output_directory):
 
     :param output_directory: Directory to put the diagram.
     :type output_directory: str
+
+    :param callback: A function to all to indicate progress. The function
+        should accept params 'current' (int) and 'maximum' (int). Defaults to
+        None.
+    :type callback: function
     """
+    if callback is None:
+        callback = print_progress_callback
+
     download_page = construct_url(sg_code, province)
     print 'Download page: %s' % download_page
     # Parse link here
@@ -234,26 +245,31 @@ def download_sg_diagram(sg_code, province, output_directory):
         i += 1
         try:
             file_path = download_from_url(download_link, output_directory)
-            if file_path is not None:
-                message = (
-                    '%s %s %d %d True %s' % (
-                        sg_code, province, i, len(download_links), file_path))
-                LOGGER.debug(message)
-            else:
-                message = (
-                    '%s %s %d %d False N/A' % (
-                        sg_code, province, i, len(download_links)))
-                LOGGER.debug(message)
         except Exception as e:
             message = (
                 '%s %s %d %d False %s' % (
                     sg_code, province, i, len(download_links), e))
-            LOGGER.debug(message)
+            LOGGER.exception(message)
             raise Exception(str(e) + message)
+
+        if file_path is not None:
+            message = (
+                '%s %s %d %d True %s' % (
+                    sg_code, province, i, len(download_links), file_path))
+            LOGGER.debug(message)
+        else:
+            message = (
+                '%s %s %d %d False N/A' % (
+                    sg_code, province, i, len(download_links)))
+            LOGGER.debug(message)
 
 
 def get_spatial_index(data_provider):
-    """Create spatial index from a data provider."""
+    """Create spatial index from a data provider.
+
+    :param data_provider: QGIS data provider name .e.g.'ogr'.
+    :type data_provider: str
+    """
     qgs_feature = QgsFeature()
     index = QgsSpatialIndex()
     qgs_features = data_provider.getFeatures()
@@ -262,15 +278,42 @@ def get_spatial_index(data_provider):
     return index
 
 
-def get_sg_codes_and_provinces(
-        site_layer, diagram_layer, sg_code_field, provinces_layer):
+def province_for_point(centroid, provinces_layer):
+    """Determine which province a point falls into.
+
+    Typically you will get the centroid of a parcel or a click position
+    on the map and then call this function with it.
+
+    :param centroid: Point at which lookup should occur.
+    :type centroid: QgsPoint
+
+    :param provinces_layer: Name of the province or the string 'Null'
+        if not found.
+    :type provinces_layer: str
+
+    :returns:
+    :rtype:
+    """
+    province_name = 'Null'
+    provinces_data_provider = provinces_layer.dataProvider()
+    province_index = provinces_layer.fieldNameIndex('province')
+    province_feature = QgsFeature()
+    provinces_data_features = provinces_data_provider.getFeatures()
+    while provinces_data_features.nextFeature(province_feature):
+        if province_feature.geometry().contains(centroid):
+            province_name = province_feature.attributes()[province_index]
+    return province_name
+
+
+def map_sg_codes_to_provinces(
+        site_layer, parcels_layer, sg_code_field, provinces_layer):
     """Obtains sg codes from target layer.
 
     :param site_layer: The target layer.
     :type site_layer: QgsVectorLayer
 
-    :param diagram_layer: Vector layer that has sg code in its field.
-    :type diagram_layer: QgsVectorLayer
+    :param parcels_layer: Vector layer that has sg code in one of its fields.
+    :type parcels_layer: QgsVectorLayer
 
     :param sg_code_field: Name of the field that contains sg code
     :type sg_code_field: str
@@ -278,60 +321,45 @@ def get_sg_codes_and_provinces(
     :param provinces_layer: Vector layer that contains provinces.
     :type provinces_layer: QgsVectorLayer
 
-    :returns: List of tuple sg code and province name
-    :rtype: list
+    :returns: Dict where key is sg code and value is province name
+    :rtype: dict
     """
-    intersects = []
-    sg_codes_and_provinces = []
+    intersecting_parcels = []
+    sg_code_provinces = {}
 
-    provinces_data_provider = provinces_layer.dataProvider()
-    province_index = provinces_layer.fieldNameIndex('province')
-    province_feature = QgsFeature()
-
-    sg_code_index = diagram_layer.fieldNameIndex(sg_code_field)
+    sg_code_index = parcels_layer.fieldNameIndex(sg_code_field)
     if sg_code_index == -1:
         message = 'Field "%s" not found' % sg_code_field
         raise Exception(message)
 
-    data_provider = diagram_layer.dataProvider()
+    parcels_provider = parcels_layer.dataProvider()
 
-    spatial_index = get_spatial_index(data_provider)
+    # TODO: @ismailsunni this var is not used...
+    spatial_index = get_spatial_index(parcels_provider)
 
     selected_features = site_layer.selectedFeatures()
     for selected_feature in selected_features:
-        for feature in data_provider.getFeatures():
+        for feature in parcels_provider.getFeatures():
             geometry = selected_feature.geometry()
             feature_geometry = feature.geometry()
 
             intersect = geometry.intersects(feature_geometry)
             if intersect:
-                intersects.append(feature.id())
+                intersecting_parcels.append(feature.id())
 
     feature = QgsFeature()
-    for intersect in intersects:
+    for intersect in intersecting_parcels:
         index = int(intersect)
-        data_provider.getFeatures(QgsFeatureRequest().setFilterFid(index))\
-            .nextFeature(feature)
+        request = QgsFeatureRequest()
+        request.setFilterFid(index)
+        parcels_provider.getFeatures(request).nextFeature(feature)
         sg_code = feature.attributes()[sg_code_index]
-
         geometry = feature.geometry()
         centroid = geometry.centroid().asPoint()
+        province_name = province_for_point(centroid, provinces_layer)
+        sg_code_provinces[sg_code] = province_name
 
-        inside_province = False
-        province_name = 'Null'
-        provinces_data_features = provinces_data_provider.getFeatures()
-        while provinces_data_features.nextFeature(province_feature):
-            if province_feature.geometry().contains(centroid):
-                inside_province = True
-                province_name = province_feature.attributes()[province_index]
-
-        if not inside_province:
-            province_name = 'Null'
-
-        if [sg_code, province_name] not in sg_codes_and_provinces:
-            sg_codes_and_provinces.append([sg_code, province_name])
-
-    return sg_codes_and_provinces
+    return sg_code_provinces
 
 
 def print_progress_callback(current, maximum, message=None):
@@ -381,13 +409,11 @@ def download_sg_diagrams(
     if callback is None:
         callback = print_progress_callback
 
-    sg_codes_and_provinces = get_sg_codes_and_provinces(
+    sg_codes_and_provinces = map_sg_codes_to_provinces(
         site_layer, diagram_layer, sg_code_field, provinces_layer)
     maximum = len(sg_codes_and_provinces)
     current = 0
-    for sg_code_and_province in sg_codes_and_provinces:
-        sg_code = sg_code_and_province[0]
-        province = sg_code_and_province[1]
+    for sg_code, province in sg_codes_and_provinces.iteritems():
         message = 'Downloading %s (%d of %d)' % (sg_code, current + 1, maximum)
         callback(current, maximum, message)
         try:

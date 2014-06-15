@@ -18,7 +18,7 @@ import os
 from test.utilities_for_testing import (
     get_temp_shapefile_layer, TEMP_DIR, get_random_string)
 from sg_download_utilities import (
-    get_sg_codes_and_provinces,
+    map_sg_codes_to_provinces,
     download_from_url,
     get_office,
     parse_download_page,
@@ -70,7 +70,7 @@ class TestUtilities(unittest.TestCase):
             provinces_layer, 'provinces')
 
         site_layer.setSelectedFeatures([7])
-        sg_codes = get_sg_codes_and_provinces(
+        sg_codes = map_sg_codes_to_provinces(
             site_layer, diagram_layer, sg_code_field, sa_provinces_layer)
         message = (
             'The number of sg codes extracted should be 33. I got %s' % len(
