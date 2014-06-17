@@ -24,7 +24,8 @@
 
 
 #Add iso code for any locales you want to support here (space separated)
-LOCALES = en af de id
+#LOCALES = en af de id
+LOCALES = 
 
 PLUGINNAME = SGDiagramDownloader
 
@@ -50,7 +51,8 @@ COMPILED_RESOURCE_FILES = resources_rc.py
 # Normally you would not need to edit below here
 #################################################
 
-HELP = help/build/html
+HELP = 
+#HELP = help/build/html
 
 THIRD_PARTY = third_party
 
@@ -83,7 +85,8 @@ test_code: compile # transcompile
 		--cover-package= . \
 		3>&1 1>&2 2>&3 3>&- || true
 
-deploy: compile doc transcompile
+#deploy: compile doc transcompile
+deploy: compile 
 	@echo
 	@echo "------------------------------------------"
 	@echo "Deploying plugin to your .qgis2 directory."
@@ -96,8 +99,8 @@ deploy: compile doc transcompile
 	cp -vf $(UI_FILES) $(COMPILED_RESOURCE_FILES) $(HOME)/$(QGISDIR)/python/plugins/$(PLUGINNAME)
 	cp -vf $(EXTRAS) $(HOME)/$(QGISDIR)/python/plugins/$(PLUGINNAME)
 	mkdir -p $(HOME)/$(QGISDIR)/python/plugins/$(PLUGINNAME)/i18n
-	cp -vfr i18n/*.qm $(HOME)/$(QGISDIR)/python/plugins/$(PLUGINNAME)/i18n/
-	cp -vfr $(HELP) $(HOME)/$(QGISDIR)/python/plugins/$(PLUGINNAME)/help
+	#cp -vfr i18n/*.qm $(HOME)/$(QGISDIR)/python/plugins/$(PLUGINNAME)/i18n/
+	#cp -vfr $(HELP) $(HOME)/$(QGISDIR)/python/plugins/$(PLUGINNAME)/help
 	cp -vfr $(THIRD_PARTY) $(HOME)/$(QGISDIR)/python/plugins/$(PLUGINNAME)/
 
 fastdeploy: derase compile
@@ -195,7 +198,7 @@ doc:
 	@echo "------------------------------------"
 	@echo "Building documentation using sphinx."
 	@echo "------------------------------------"
-	cd help; make clean; make html
+	#cd help; make clean; make html
 
 tag:
 	@echo
