@@ -33,13 +33,17 @@ from qgis.core import (
     QgsVectorLayer,
     QgsFeature,
     QgsFeatureRequest,
-    QgsSpatialIndex, QgsRectangle)
+    QgsSpatialIndex,
+    QgsRectangle)
 
-import pycurl
+from PyQt4.QtNetwork import QNetworkAccessManager
+
 import sqlite3
 import urllib
 import sys
 from urlparse import urlparse
+from file_downloader import FileDownloader
+from proxy import get_proxy
 
 
 third_party_path = os.path.abspath(
@@ -172,21 +176,23 @@ def download_from_url(url, output_directory, filename=None, use_cache=True):
         LOGGER.info('File %s exists, not downloading' % file_path)
         return file_path
 
+    # Set Proxy in webpage
+    proxy = get_proxy()
+    network_manager = QNetworkAccessManager()
+    if not proxy is None:
+        network_manager.setProxy(proxy)
+
+    # Download Process
+    # noinspection PyTypeChecker
+    downloader = FileDownloader(network_manager, url, file_path)
     try:
-        fp = open(file_path, 'wb')
-        curl = pycurl.Curl()
-        curl.setopt(pycurl.URL, str(url))
-        curl.setopt(pycurl.CONNECTTIMEOUT, 60)
-        curl.setopt(pycurl.FOLLOWLOCATION, True)
-        curl.setopt(pycurl.NOBODY, False)
+        result = downloader.download()
+    except IOError as ex:
+        raise IOError(ex)
 
-        curl.setopt(pycurl.WRITEDATA, fp)
-        curl.perform()
-
-        curl.close()
-        fp.close()
-    except Exception, e:
-        raise Exception(e)
+    if result[0] is not True:
+        _, error_message = result
+        raise Exception(error_message)
 
     if os.path.exists(file_path):
         return file_path
