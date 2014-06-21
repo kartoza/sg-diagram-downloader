@@ -27,10 +27,25 @@ __copyright__ = ''
 
 import csv
 import sqlite3
+import os
+import sys
 
 if __name__ == '__main__':
-    csv_path = '../data/sg_regional_offices.csv'
-    sqlite3_path = '../data/sg_regional_offices.sqlite3'
+    csv_path = ''
+    if len(sys.argv) == 2:
+        csv_path = sys.argv[1]
+    elif len(sys.argv) == 1:
+        csv_path = '../data/sg_regional_offices.csv'
+    else:
+        print 'Usage'
+        print 'python csv_to_sqlite.py [csv file]'
+        exit()
+
+    if not os.path.exists(csv_path) or len(csv_path):
+        print 'Your csv is not exist in %s' % csv_path
+        exit()
+
+    sqlite3_path = csv_path[:-3] + 'sqlite'
 
     # adapted from http://stackoverflow.com/a/2888042/1198772
     con = sqlite3.connect(sqlite3_path)
