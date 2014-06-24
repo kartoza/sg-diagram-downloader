@@ -19,8 +19,6 @@ Utilities for Surveyor General Diagram
  *                                                                         *
  ***************************************************************************/
 """
-from PyQt4.QtCore import QRegExp, Qt, QSettings
-
 __author__ = 'ismail@linfiniti.com'
 __revision__ = '$Format:%H$'
 __date__ = '30/05/2014'
@@ -37,12 +35,14 @@ from qgis.core import (
     QgsRectangle)
 
 from PyQt4.QtNetwork import QNetworkAccessManager
+from PyQt4.QtCore import QRegExp, Qt, QSettings
 
 import sqlite3
 import urllib
 import sys
 from urlparse import urlparse
 from file_downloader import FileDownloader
+from sg_exceptions import DownloadException
 from proxy import get_proxy
 
 
@@ -192,7 +192,7 @@ def download_from_url(url, output_directory, filename=None, use_cache=True):
 
     if result[0] is not True:
         _, error_message = result
-        raise Exception(error_message)
+        raise DownloadException(error_message)
 
     if os.path.exists(file_path):
         return file_path
@@ -319,8 +319,8 @@ def province_for_point(centroid, provinces_layer):
         if not found.
     :type provinces_layer: str
 
-    :returns:
-    :rtype:
+    :returns: Province Name
+    :rtype: str
     """
     province_name = 'Null'
     # noinspection PyUnresolvedReferences

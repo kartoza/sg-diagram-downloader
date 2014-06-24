@@ -35,7 +35,11 @@ PY_FILES = \
 	sg_downloader.py \
 	sg_utilities.py \
 	sg_action.py \
-	sg_map_tool.py
+	sg_map_tool.py \
+	database_manager.py \
+	file_downloader.py \
+	proxy.py \
+	sg_exceptions.py
 
 EXTRAS = icon.png metadata.txt LICENSE README.md
 
