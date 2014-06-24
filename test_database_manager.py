@@ -31,12 +31,12 @@ import os
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 
-REGIONAL_OFFICES_SQLITE3 = os.path.join(
-    DATA_DIR, 'sg_diagrams.sqlite')
+sg_diagrams_database = os.path.join(DATA_DIR, 'sg_diagrams.sqlite')
+
 
 class TestDatabaseManager(unittest.TestCase):
     def test_connection(self):
-        spatialite_path = REGIONAL_OFFICES_SQLITE3
+        spatialite_path = sg_diagrams_database
         db_manager = DatabaseManager(spatialite_path)
 
         query = 'SELECT count(*) FROM provinces'
@@ -44,11 +44,11 @@ class TestDatabaseManager(unittest.TestCase):
 
         expected_result = (7,)
         message = 'Expected %s, got %s' % (expected_result, result)
-        self.assertEqual(result,expected_result, message)
+        self.assertEqual(result, expected_result, message)
 
         db_manager.close()
 
-        spatialite_path = REGIONAL_OFFICES_SQLITE3 + 'zero'
+        spatialite_path = sg_diagrams_database + 'zero'
         db_manager = DatabaseManager(spatialite_path)
 
         query = 'SELECT count(*) FROM provinces'
@@ -62,7 +62,7 @@ class TestDatabaseManager(unittest.TestCase):
 
     def test_fetchone(self):
         """Test for fetching one record."""
-        spatialite_path = REGIONAL_OFFICES_SQLITE3
+        spatialite_path = sg_diagrams_database
         db_manager = DatabaseManager(spatialite_path)
 
         query = "SELECT province FROM provinces WHERE "
@@ -71,7 +71,7 @@ class TestDatabaseManager(unittest.TestCase):
         result = db_manager.fetch_one(query)
         expected_result = ('Free State',)
         message = 'Expected %s, got %s' % (expected_result, result)
-        self.assertEqual(result,expected_result, message)
+        self.assertEqual(result, expected_result, message)
         db_manager.close()
 
 

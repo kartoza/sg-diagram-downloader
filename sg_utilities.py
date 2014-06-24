@@ -42,9 +42,9 @@ import urllib
 import sys
 from urlparse import urlparse
 from file_downloader import FileDownloader
-from sg_exceptions import DownloadException
+from sg_exceptions import DownloadException, DatabaseException
 from proxy import get_proxy
-
+from database_manager import DatabaseManager
 
 third_party_path = os.path.abspath(
     os.path.join(os.path.dirname(__file__), 'third_party'))
@@ -59,12 +59,14 @@ from custom_logging import LOGGER
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 PROVINCES_LAYER_PATH = os.path.join(DATA_DIR, 'provinces.shp')
-REGIONAL_OFFICES_SQLITE3 = os.path.join(
-    DATA_DIR, 'sg_regional_offices.sqlite3')
+SG_DIAGRAM_SQLITE3 = os.path.join(DATA_DIR, 'sg_diagrams.sqlite')
 
 
-def get_office(region_code=None, province=None):
+def get_office(db_manager, region_code=None, province=None):
     """Get office and office no from database using region_code and province.
+
+    :param db_manager: A database manager
+    :type db_manager: DatabaseManager
 
     :param region_code: SG code.
     :type region_code: str
@@ -76,27 +78,22 @@ def get_office(region_code=None, province=None):
     :rtype: tuple
     """
     try:
-        db_connection = sqlite3.connect(REGIONAL_OFFICES_SQLITE3)
-        db_cursor = db_connection.cursor()
         query = (
             "SELECT office, office_no, typology FROM regional_office WHERE "
             "province='%s' AND region_code='%s'" % (province, region_code))
 
-        print 'Executing %s' % query
-        db_cursor.execute(query)
-        db_connection.commit()
+        result = db_manager.fetch_one(query)
 
-        row = db_cursor.fetchone()
-
-        db_connection.close()
-
-        return row
-    except sqlite3.DatabaseError as e:
+        return result
+    except DatabaseException as e:
         print 'Database error', e
 
 
-def construct_url(sg_code=None, province=None):
+def construct_url(db_manager, sg_code=None, province=None):
     """Construct url to download sg diagram.
+
+    :param db_manager: A database manager
+    :type db_manager: DatabaseManager
 
     :param sg_code: SG code.
     :type sg_code: str
@@ -119,7 +116,7 @@ def construct_url(sg_code=None, province=None):
     base_url = 'http://csg.dla.gov.za/esio/listdocument.jsp?'
     reg_division = sg_code[:8]
 
-    record = get_office(reg_division, province)
+    record = get_office(db_manager, reg_division, province)
     if record is None or bool(record) is None:
         raise Exception('SG code and province is not found in database')
     office, office_number, typology = record
@@ -223,8 +220,12 @@ def parse_download_page(download_page_url):
     return download_urls
 
 
-def download_sg_diagram(sg_code, province, output_directory, callback=None):
+def download_sg_diagram(
+        db_manager, sg_code, province, output_directory, callback=None):
     """Download sg diagram using sg_code and put it under output_directory.
+
+    :param db_manager: A database manager
+    :type db_manager: DatabaseManager
 
     :param sg_code: Surveyor General code.
     :type sg_code: str
@@ -248,7 +249,7 @@ def download_sg_diagram(sg_code, province, output_directory, callback=None):
         callback = print_progress_callback
 
     try:
-        download_page = construct_url(sg_code, province)
+        download_page = construct_url(db_manager, sg_code, province)
     except Exception, e:
         LOGGER.exception('Error constructing url')
         raise
@@ -317,7 +318,7 @@ def province_for_point(centroid, provinces_layer):
 
     :param provinces_layer: Name of the province or the string 'Null'
         if not found.
-    :type provinces_layer: str
+    :type provinces_layer: str, QgsVectorLayer
 
     :returns: Province Name
     :rtype: str

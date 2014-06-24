@@ -29,6 +29,7 @@ from sg_utilities import (
     point_to_rectangle,
     diagram_directory)
 
+from database_manager import DatabaseManager
 
 DATA_TEST_DIR = os.path.join(os.path.dirname(__file__), 'test', 'data')
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
@@ -84,18 +85,22 @@ class TestUtilities(unittest.TestCase):
 
     def test_get_office(self):
         """Test for get_office function."""
+        regional_offices_sqlite3 = os.path.join(DATA_DIR, 'sg_diagrams.sqlite')
+        database_manager = DatabaseManager(regional_offices_sqlite3)
+
         province = 'Eastern Cape'
         region_code = 'C0020000'
 
         expected_result = 'SGELN', '8', 'Rural'
-        result = get_office(region_code, province)
+        result = get_office(database_manager, region_code, province)
         message = 'Expected %s got %s' % (expected_result, result)
         self.assertEqual(expected_result, result, message)
 
         province = 'Eastern Cape XXX'
         region_code = 'C0020000'
         message = 'Should be None'
-        self.assertIsNone(get_office(region_code, province), message)
+        self.assertIsNone(
+            get_office(database_manager, region_code, province), message)
 
     def test_parse_download_page(self):
         """Test for parse_download_page."""

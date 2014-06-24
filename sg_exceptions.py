@@ -19,7 +19,6 @@ Exceptions for Surveyor General Diagram
  *                                                                         *
  ***************************************************************************/
 """
-from PyQt4.QtCore import QRegExp, Qt, QSettings
 
 __author__ = 'ismail@linfiniti.com'
 __revision__ = '$Format:%H$'
@@ -29,9 +28,9 @@ __copyright__ = ''
 
 class DownloadException(Exception):
     """Raised if radii for volcano buffer is not as we expect."""
-    suggestion = 'Failed to download file'
+    reason = 'Failed to download file'
 
 
 class DatabaseException(Exception):
     """Raised if radii for volcano buffer is not as we expect."""
-    suggestion = 'Failed to execute query'
+    reason = 'Failed to execute query'

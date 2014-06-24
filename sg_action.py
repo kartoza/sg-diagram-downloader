@@ -9,7 +9,8 @@ from sg_map_tool import SGMapTool
 
 class SGAction(QAction):
     """Custom QAction that will invoke the sg_map_tool when clicked."""
-    def __init__(self, icon, iface, provinces_layer, menu_text, whats_this_text):
+    def __init__(
+            self, icon, iface, provinces_layer, menu_text, whats_this_text):
         """Constructor."""
         main_window = iface.mainWindow()
         QAction.__init__(self, icon, menu_text, main_window)

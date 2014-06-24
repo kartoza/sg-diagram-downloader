@@ -19,6 +19,10 @@ from sg_utilities import (
     point_to_rectangle,
     diagram_directory)
 
+from database_manager import DatabaseManager
+import os
+DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
+
 
 class SGMapTool(QgsMapTool):
     """A map tool that lets you click on a parcel to download its SG Diagram.
@@ -161,16 +165,21 @@ class SGMapTool(QgsMapTool):
         result = ''
         output_path = diagram_directory()
 
+        sg_diagrams_database = os.path.join(DATA_DIR, 'sg_diagrams.sqlite')
+        data_manager = DatabaseManager(sg_diagrams_database)
+
         for sg_code in fetch_list:
             result += download_sg_diagram(
+                data_manager,
                 sg_code,
                 province,
                 output_path,
                 progress_callback)
+
+        data_manager.close()
 
         log = file('sg_downloader.log', 'a')
         log.write(result)
         log.close()
         # Cant return string from canvas release event
         #return result
-

@@ -41,11 +41,12 @@ if __name__ == '__main__':
         print 'python csv_to_sqlite.py [csv file]'
         exit()
 
-    if not os.path.exists(csv_path) or len(csv_path):
+    if not os.path.exists(csv_path):
         print 'Your csv is not exist in %s' % csv_path
         exit()
 
-    sqlite3_path = csv_path[:-3] + 'sqlite'
+    # sqlite3_path = csv_path[:-3] + 'sqlite'
+    sqlite3_path = '../data/sg_diagrams.sqlite'
 
     # adapted from http://stackoverflow.com/a/2888042/1198772
     con = sqlite3.connect(sqlite3_path)
