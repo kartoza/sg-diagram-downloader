@@ -30,3 +30,8 @@ __copyright__ = ''
 class DownloadException(Exception):
     """Raised if radii for volcano buffer is not as we expect."""
     suggestion = 'Failed to download file'
+
+
+class DatabaseException(Exception):
+    """Raised if radii for volcano buffer is not as we expect."""
+    suggestion = 'Failed to execute query'
