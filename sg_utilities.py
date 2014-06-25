@@ -41,7 +41,7 @@ import urllib
 import sys
 from urlparse import urlparse
 from file_downloader import FileDownloader
-from sg_exceptions import DownloadException, DatabaseException
+from sg_exceptions import DownloadException, DatabaseException, UrlException
 from proxy import get_proxy
 from database_manager import DatabaseManager
 
@@ -57,7 +57,6 @@ from bs4 import BeautifulSoup
 from custom_logging import LOGGER
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
-PROVINCES_LAYER_PATH = os.path.join(DATA_DIR, 'provinces.shp')
 SG_DIAGRAM_SQLITE3 = os.path.join(DATA_DIR, 'sg_diagrams.sqlite')
 
 
@@ -88,7 +87,7 @@ def get_office(db_manager, region_code=None, province=None):
         print 'Database error', e
 
 
-def construct_url(db_manager, sg_code=None, province=None):
+def construct_url(db_manager, sg_code=None, province_name=None):
     """Construct url to download sg diagram.
 
     :param db_manager: A database manager
@@ -97,8 +96,8 @@ def construct_url(db_manager, sg_code=None, province=None):
     :param sg_code: SG code.
     :type sg_code: str
 
-    :param province: province name.
-    :type province: str
+    :param province_name: province_name name.
+    :type province_name: str
 
     :returns: URL to download sg diagram.
     :rtype: str
@@ -106,18 +105,16 @@ def construct_url(db_manager, sg_code=None, province=None):
     if len(sg_code) != 21:
         raise Exception('length sg code is not 21')
 
-    LOGGER.info('Constructing url for %s %s' % (sg_code, province))
-    if sg_code is None or province is None:
-        return (
-            'http://csg.dla.gov.za/esio/listdocument.jsp?regDivision=C0160013'
-            '&Noffice=2&Erf=1234&Portion=0&FarmName=')
+    LOGGER.info('Constructing url for %s %s' % (sg_code, province_name))
+    if sg_code is None or province_name is None:
+        raise UrlException()
 
     base_url = 'http://csg.dla.gov.za/esio/listdocument.jsp?'
     reg_division = sg_code[:8]
 
-    record = get_office(db_manager, reg_division, province)
+    record = get_office(db_manager, reg_division, province_name)
     if record is None or bool(record) is None:
-        raise Exception('SG code and province is not found in database')
+        raise Exception('SG code and province name is not found in database')
     office, office_number, typology = record
 
     erf = sg_code[8:16]
@@ -220,7 +217,7 @@ def parse_download_page(download_page_url):
 
 
 def download_sg_diagram(
-        db_manager, sg_code, province, output_directory, callback=None):
+        db_manager, sg_code, province_name, output_directory, callback=None):
     """Download sg diagram using sg_code and put it under output_directory.
 
     :param db_manager: A database manager
@@ -229,8 +226,8 @@ def download_sg_diagram(
     :param sg_code: Surveyor General code.
     :type sg_code: str
 
-    :param province: Province name.
-    :type province: str
+    :param province_name: Province name.
+    :type province_name: str
 
     :param output_directory: Directory to put the diagram.
     :type output_directory: str
@@ -248,7 +245,7 @@ def download_sg_diagram(
         callback = print_progress_callback
 
     try:
-        download_page = construct_url(db_manager, sg_code, province)
+        download_page = construct_url(db_manager, sg_code, province_name)
     except Exception, e:
         LOGGER.exception('Error constructing url')
         raise
@@ -262,7 +259,7 @@ def download_sg_diagram(
 
     count = 0
     total = len(download_links)
-    report = 'Downloading documents for %s in %s\n' % (sg_code, province)
+    report = 'Downloading documents for %s in %s\n' % (sg_code, province_name)
 
     for download_link in download_links:
         count += 1
@@ -401,7 +398,7 @@ def print_progress_callback(current, maximum, message=None):
     :param message: Optional message to display in the progress bar
     :type message: str, QString
     """
-    print '%d of %d' + str(message) % (current, maximum)
+    print ('%d of %d' + str(message)) % (current, maximum)
 
 
 def download_sg_diagrams(
@@ -487,10 +484,6 @@ def is_valid_sg_code(value):
 
     # TODO Add Regex check we prepped for above
     return True
-
-if __name__ == '__main__':
-    print PROVINCES_LAYER_PATH
-    print os.path.exists(PROVINCES_LAYER_PATH)
 
 
 def point_to_rectangle(point):

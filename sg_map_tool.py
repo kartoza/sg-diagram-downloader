@@ -45,6 +45,10 @@ class SGMapTool(QgsMapTool):
         self.message_bar = None
         self.progress_bar = None
 
+        sg_diagrams_database = os.path.join(DATA_DIR, 'sg_diagrams.sqlite')
+
+        self.db_manager = DatabaseManager(sg_diagrams_database)
+
     def canvasPressEvent(self, event):
         """Slot called when a mouse press occurs on the canvas.
 
@@ -161,7 +165,7 @@ class SGMapTool(QgsMapTool):
                 duration=10)
             return
 
-        province = province_for_point(place, self.provinces_layer)
+        province = province_for_point(self.db_manager, place)
         result = ''
         output_path = diagram_directory()
 

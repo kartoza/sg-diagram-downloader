@@ -27,7 +27,8 @@ from sg_utilities import (
     get_filename,
     is_valid_sg_code,
     point_to_rectangle,
-    diagram_directory)
+    diagram_directory,
+    download_sg_diagram)
 
 from database_manager import DatabaseManager
 
@@ -43,11 +44,23 @@ QGIS_APP = get_qgis_app()
 erf_layer = os.path.join(DATA_TEST_DIR, 'erf.shp')
 farm_portion_layer = os.path.join(DATA_TEST_DIR, 'farm_portion.shp')
 parent_farm_layer = os.path.join(DATA_TEST_DIR, 'parent_farm.shp')
-provinces_layer = os.path.join(DATA_DIR, 'provinces.shp')
 purchaseplan_layer = os.path.join(DATA_TEST_DIR, 'purchaseplan.shp')
 
 
 class TestUtilities(unittest.TestCase):
+    # merely assign an attribute
+    database_manager = None
+
+    @classmethod
+    def setUpClass(cls):
+        """Setup Test Class."""
+        cls.database_manager = DatabaseManager(sg_diagrams_database)
+
+    @classmethod
+    def tearDownClass(cls):
+        """Tear down Test Class."""
+        cls.database_manager.close()
+
     def test_data(self):
         self.assertTrue(os.path.exists(erf_layer), erf_layer)
         self.assertTrue(os.path.exists(farm_portion_layer), farm_portion_layer)
@@ -74,12 +87,9 @@ class TestUtilities(unittest.TestCase):
             parent_farm_layer, 'parent farm')
         sg_code_field = 'id'
 
-        db_manager = DatabaseManager(sg_diagrams_database)
-
         site_layer.setSelectedFeatures([7])
         sg_codes = map_sg_codes_to_provinces(
-            db_manager, site_layer, diagram_layer, sg_code_field)
-        db_manager.close()
+            self.database_manager, site_layer, diagram_layer, sg_code_field)
         message = (
             'The number of sg codes extracted should be 33. I got %s' % len(
                 sg_codes))
@@ -87,14 +97,11 @@ class TestUtilities(unittest.TestCase):
 
     def test_get_office(self):
         """Test for get_office function."""
-        regional_offices_sqlite3 = os.path.join(DATA_DIR, 'sg_diagrams.sqlite')
-        database_manager = DatabaseManager(regional_offices_sqlite3)
-
         province = 'Eastern Cape'
         region_code = 'C0020000'
 
         expected_result = 'SGELN', '8', 'Rural'
-        result = get_office(database_manager, region_code, province)
+        result = get_office(self.database_manager, region_code, province)
         message = 'Expected %s got %s' % (expected_result, result)
         self.assertEqual(expected_result, result, message)
 
@@ -102,8 +109,7 @@ class TestUtilities(unittest.TestCase):
         region_code = 'C0020000'
         message = 'Should be None'
         self.assertIsNone(
-            get_office(database_manager, region_code, province), message)
-        database_manager.close()
+            get_office(self.database_manager, region_code, province), message)
 
     def test_parse_download_page(self):
         """Test for parse_download_page."""
@@ -150,6 +156,15 @@ class TestUtilities(unittest.TestCase):
         """Test we can get the diagram directory properly."""
         path = diagram_directory()
         self.assertTrue(os.path.exists(path))
+
+    def test_download_sg_diagram(self):
+        """Test for download sg diagram."""
+        sg_code = 'C01300000000001400000'
+        province_name = 'Western Cape'
+        output_directory = TEMP_DIR
+        report = download_sg_diagram(
+            self.database_manager, sg_code, province_name, output_directory)
+        self.assertEqual(4, report.count('Success'))
 
 if __name__ == '__main__':
     unittest.main()

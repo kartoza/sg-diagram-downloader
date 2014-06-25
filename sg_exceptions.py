@@ -34,3 +34,8 @@ class DownloadException(Exception):
 class DatabaseException(Exception):
     """Raised if radii for volcano buffer is not as we expect."""
     reason = 'Failed to execute query'
+
+
+class UrlException(Exception):
+    """Raised if radii for volcano buffer is not as we expect."""
+    reason = 'Failed to construct url'
