@@ -140,6 +140,7 @@ class TestUtilities(unittest.TestCase):
         self.assertFalse(is_valid_sg_code('B019000000000263000000'))
         # Too short
         self.assertFalse(is_valid_sg_code('B01900000000026300'))
+        self.assertFalse(is_valid_sg_code('C0190000000002630000X'))
 
     def test_point_to_rectangle(self):
         """Test for point to rectangle."""

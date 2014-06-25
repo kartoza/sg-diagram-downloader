@@ -36,6 +36,7 @@ from qgis.core import (
 
 from PyQt4.QtNetwork import QNetworkAccessManager
 from PyQt4.QtCore import QRegExp, Qt, QSettings
+from PyQt4.QtGui import QRegExpValidator, QValidator
 
 import urllib
 import sys
@@ -483,12 +484,15 @@ def is_valid_sg_code(value):
     # Gavin's test dataset and came up with OBCFNT
     prefixes = 'OBCFNT'
     sg_code_regex = QRegExp('^[%s][0-9]{20}$' % prefixes, Qt.CaseInsensitive)
+    validator = QRegExpValidator(sg_code_regex)
     if len(value) != 21:
         return False
     if value[0] not in prefixes:
         return False
+    acceptable, _, _ = validator.validate(value, 21)
+    if acceptable != QValidator.Acceptable:
+        return False
 
-    # TODO Add Regex check we prepped for above
     return True
 
 
