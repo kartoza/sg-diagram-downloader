@@ -60,3 +60,4 @@ resources_rc.py
 pydev
 *.qm
 diagrams
+*.pyc
