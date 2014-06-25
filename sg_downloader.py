@@ -28,7 +28,6 @@ __copyright__ = ''
 import os
 from os.path import expanduser
 import logging
-from datetime import datetime
 
 # Import the PyQt and QGIS libraries
 # this import required to enable PyQt API v2
@@ -46,6 +45,11 @@ from PyQt4.QtCore import pyqtSignature, QSettings
 from qgis.gui import QgsMessageBar
 
 from sg_utilities import download_sg_diagrams
+from database_manager import DatabaseManager
+
+DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
+
+sg_diagrams_database = os.path.join(DATA_DIR, 'sg_diagrams.sqlite')
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'sg_downloader_base.ui'))
@@ -78,6 +82,9 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
         self.parcel_layer = None
         self.sg_code_field = None
         self.output_directory = None
+
+        self.database_manager = DatabaseManager(sg_diagrams_database)
+
         self.restore_state()
 
     def populate_combo_box(self):
@@ -222,6 +229,7 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
                 progress_bar.setValue(current)
 
         download_sg_diagrams(
+            self.database_manager,
             self.site_layer,
             self.parcel_layer,
             self.sg_code_field,

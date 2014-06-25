@@ -103,6 +103,7 @@ def construct_url(db_manager, sg_code=None, province_name=None):
     :rtype: str
     """
     if len(sg_code) != 21:
+        print sg_code
         raise Exception('length sg code is not 21')
 
     LOGGER.info('Constructing url for %s %s' % (sg_code, province_name))
@@ -402,12 +403,16 @@ def print_progress_callback(current, maximum, message=None):
 
 
 def download_sg_diagrams(
+        db_manager,
         site_layer,
         diagram_layer,
         sg_code_field,
         output_directory,
         callback=None):
     """Downloads all SG Diagrams.
+
+    :param db_manager: A database manager
+    :type db_manager: DatabaseManager
 
     :param site_layer: The target layer.
     :type site_layer: QgsVectorLayer
@@ -434,7 +439,7 @@ def download_sg_diagrams(
         callback = print_progress_callback
 
     sg_codes_and_provinces = map_sg_codes_to_provinces(
-        site_layer, diagram_layer, sg_code_field)
+        db_manager, site_layer, diagram_layer, sg_code_field)
     maximum = len(sg_codes_and_provinces)
     current = 0
     result = 'Fetching diagrams for %i SG Codes.\n'
@@ -447,12 +452,13 @@ def download_sg_diagrams(
 
         try:
             result += download_sg_diagram(
+                db_manager,
                 sg_code,
                 province,
                 output_directory,
                 callback)
         except Exception, e:
-            result += 'Failed to download %s %s\n' % (sg_code, province), e
+            result += 'Failed to download %s %s %s\n' % (sg_code, province, e)
             LOGGER.exception(e)
 
     log = file('sg_downloader.log', 'a')
