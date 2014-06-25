@@ -52,7 +52,6 @@ class TestUtilities(unittest.TestCase):
         self.assertTrue(os.path.exists(erf_layer), erf_layer)
         self.assertTrue(os.path.exists(farm_portion_layer), farm_portion_layer)
         self.assertTrue(os.path.exists(parent_farm_layer), parent_farm_layer)
-        self.assertTrue(os.path.exists(provinces_layer), provinces_layer)
         self.assertTrue(os.path.exists(purchaseplan_layer), purchaseplan_layer)
 
     def test_download_from_url(self):
