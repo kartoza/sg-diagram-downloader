@@ -105,7 +105,8 @@ class SGMapTool(QgsMapTool):
         self.iface.messageBar().pushMessage(
             self.tr('SG Downloader.'),
             self.tr('Preparing for download'),
-            level=QgsMessageBar.INFO)
+            level=QgsMessageBar.INFO,
+            duration=10)
 
         # No need to check that it is a valid, polygon layer
         # as the QAction for this map tool already does that
@@ -126,7 +127,7 @@ class SGMapTool(QgsMapTool):
 
         # Ignore any columns that don't contain text data
         for field in all_fields:
-            if field.typeName() == 'TEXT':
+            if field.typeName() == 'String' or field.typeName() == 'Text':
                 text_fields.append(field)
 
         self.setup_messagebar()
