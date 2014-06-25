@@ -34,6 +34,8 @@ from database_manager import DatabaseManager
 DATA_TEST_DIR = os.path.join(os.path.dirname(__file__), 'test', 'data')
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 
+sg_diagrams_database = os.path.join(DATA_DIR, 'sg_diagrams.sqlite')
+
 from test.utilities_for_testing import get_qgis_app
 
 QGIS_APP = get_qgis_app()
@@ -72,12 +74,12 @@ class TestUtilities(unittest.TestCase):
         diagram_layer = get_temp_shapefile_layer(
             parent_farm_layer, 'parent farm')
         sg_code_field = 'id'
-        sa_provinces_layer = get_temp_shapefile_layer(
-            provinces_layer, 'provinces')
+
+        db_manager = DatabaseManager(sg_diagrams_database)
 
         site_layer.setSelectedFeatures([7])
         sg_codes = map_sg_codes_to_provinces(
-            site_layer, diagram_layer, sg_code_field, sa_provinces_layer)
+            db_manager, site_layer, diagram_layer, sg_code_field)
         message = (
             'The number of sg codes extracted should be 33. I got %s' % len(
                 sg_codes))

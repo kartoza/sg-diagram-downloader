@@ -228,6 +228,5 @@ class SGDiagramDownloader:
     # @staticmethod
     def show_download_dialog(self):
         """Show the download dialog."""
-        dialog = DownloadDialog(
-            self.iface, provinces_layer=self.province_layer)
+        dialog = DownloadDialog(self.iface)
         dialog.exec_()  # modal

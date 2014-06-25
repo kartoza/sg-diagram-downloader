@@ -66,10 +66,18 @@ class TestDatabaseManager(unittest.TestCase):
         db_manager = DatabaseManager(spatialite_path)
 
         query = "SELECT province FROM provinces WHERE "
-        query += "Within(GeomFromText('POINT(25 -30 )'), Geometry)"
+        query += "Within(GeomFromText('POINT(25 -30)'), Geometry)"
 
         result = db_manager.fetch_one(query)
         expected_result = ('Free State',)
+        message = 'Expected %s, got %s' % (expected_result, result)
+        self.assertEqual(result, expected_result, message)
+
+        query = "SELECT province FROM provinces WHERE "
+        query += "Within(GeomFromText('POINT(100 100)'), Geometry)"
+
+        result = db_manager.fetch_one(query)
+        expected_result = None
         message = 'Expected %s, got %s' % (expected_result, result)
         self.assertEqual(result, expected_result, message)
         db_manager.close()

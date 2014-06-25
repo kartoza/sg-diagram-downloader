@@ -56,13 +56,10 @@ LOGGER = logging.getLogger('QGIS')
 # noinspection PyArgumentList
 class DownloadDialog(QtGui.QDialog, FORM_CLASS):
     """GUI for downloading SG Plans."""
-    def __init__(self, iface, provinces_layer, parent=None):
+    def __init__(self, iface, parent=None):
         """Constructor.
 
-
-
         :param iface:
-        :param provinces_layer:
         :param parent:
         """
         super(DownloadDialog, self).__init__(parent)
@@ -76,7 +73,6 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
         self.message_bar = None
         self.iface = iface
         self.populate_combo_box()
-        self.provinces_layer = provinces_layer
 
         self.site_layer = None
         self.parcel_layer = None
@@ -230,10 +226,7 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
             self.parcel_layer,
             self.sg_code_field,
             self.output_directory,
-            self.provinces_layer,
             callback=progress_callback)
-
-        print datetime.now(), '198'
 
         message = 'Download completed'
         progress_callback(100, 100, message)

@@ -37,7 +37,6 @@ from qgis.core import (
 from PyQt4.QtNetwork import QNetworkAccessManager
 from PyQt4.QtCore import QRegExp, Qt, QSettings
 
-import sqlite3
 import urllib
 import sys
 from urlparse import urlparse
@@ -307,38 +306,40 @@ def get_spatial_index(data_provider):
     return index
 
 
-def province_for_point(centroid, provinces_layer):
+def province_for_point(db_manager, centroid):
     """Determine which province a point falls into.
 
     Typically you will get the centroid of a parcel or a click position
     on the map and then call this function with it.
 
+    :param db_manager: A database manager
+    :type db_manager: DatabaseManager
+
     :param centroid: Point at which lookup should occur.
     :type centroid: QgsPoint
-
-    :param provinces_layer: Name of the province or the string 'Null'
-        if not found.
-    :type provinces_layer: str, QgsVectorLayer
 
     :returns: Province Name
     :rtype: str
     """
-    province_name = 'Null'
-    # noinspection PyUnresolvedReferences
-    provinces_data_provider = provinces_layer.dataProvider()
-    # noinspection PyUnresolvedReferences
-    province_index = provinces_layer.fieldNameIndex('province')
-    province_feature = QgsFeature()
-    provinces_data_features = provinces_data_provider.getFeatures()
-    while provinces_data_features.nextFeature(province_feature):
-        if province_feature.geometry().contains(centroid):
-            province_name = province_feature.attributes()[province_index]
-    return province_name
+    centroid_wkt = centroid.wellKnownText()
+
+    query = "SELECT province FROM provinces WHERE "
+    query += "Within(GeomFromText('%s'), Geometry)" % centroid_wkt
+
+    row = db_manager.fetch_one(query)
+
+    if row is None:
+        return 'Null'
+    else:
+        return row[0]
 
 
 def map_sg_codes_to_provinces(
-        site_layer, parcels_layer, sg_code_field, provinces_layer):
+        db_manager, site_layer, parcels_layer, sg_code_field,):
     """Obtains sg codes from target layer.
+
+    :param db_manager: A database manager
+    :type db_manager: DatabaseManager
 
     :param site_layer: The target layer.
     :type site_layer: QgsVectorLayer
@@ -348,9 +349,6 @@ def map_sg_codes_to_provinces(
 
     :param sg_code_field: Name of the field that contains sg code
     :type sg_code_field: str
-
-    :param provinces_layer: Vector layer that contains provinces.
-    :type provinces_layer: QgsVectorLayer
 
     :returns: Dict where key is sg code and value is province name
     :rtype: dict
@@ -364,9 +362,6 @@ def map_sg_codes_to_provinces(
         raise Exception(message)
 
     parcels_provider = parcels_layer.dataProvider()
-
-    # TODO: @ismailsunni this var is not used...
-    spatial_index = get_spatial_index(parcels_provider)
 
     selected_features = site_layer.selectedFeatures()
     for selected_feature in selected_features:
@@ -388,7 +383,7 @@ def map_sg_codes_to_provinces(
         geometry = feature.geometry()
         centroid = geometry.centroid().asPoint()
         # noinspection PyTypeChecker
-        province_name = province_for_point(centroid, provinces_layer)
+        province_name = province_for_point(db_manager, centroid)
         sg_code_provinces[sg_code] = province_name
 
     return sg_code_provinces
@@ -414,7 +409,6 @@ def download_sg_diagrams(
         diagram_layer,
         sg_code_field,
         output_directory,
-        provinces_layer,
         callback=None):
     """Downloads all SG Diagrams.
 
@@ -430,9 +424,6 @@ def download_sg_diagrams(
     :param output_directory: Directory to put the diagram.
     :type output_directory: str
 
-    :param provinces_layer: province layer that will be used.
-    :type provinces_layer: QgsVectorLayer
-
     :param callback: A function to all to indicate progress. The function
         should accept params 'current' (int) and 'maximum' (int). Defaults to
         None.
@@ -446,7 +437,7 @@ def download_sg_diagrams(
         callback = print_progress_callback
 
     sg_codes_and_provinces = map_sg_codes_to_provinces(
-        site_layer, diagram_layer, sg_code_field, provinces_layer)
+        site_layer, diagram_layer, sg_code_field)
     maximum = len(sg_codes_and_provinces)
     current = 0
     result = 'Fetching diagrams for %i SG Codes.\n'
