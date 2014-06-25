@@ -80,6 +80,7 @@ class TestUtilities(unittest.TestCase):
         site_layer.setSelectedFeatures([7])
         sg_codes = map_sg_codes_to_provinces(
             db_manager, site_layer, diagram_layer, sg_code_field)
+        db_manager.close()
         message = (
             'The number of sg codes extracted should be 33. I got %s' % len(
                 sg_codes))
@@ -103,6 +104,7 @@ class TestUtilities(unittest.TestCase):
         message = 'Should be None'
         self.assertIsNone(
             get_office(database_manager, region_code, province), message)
+        database_manager.close()
 
     def test_parse_download_page(self):
         """Test for parse_download_page."""
