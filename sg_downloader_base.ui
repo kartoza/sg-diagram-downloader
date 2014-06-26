@@ -51,33 +51,12 @@
        <item>
         <widget class="QLabel" name="label">
          <property name="text">
-          <string>Choose a layer containing 'site' polygon (e.g. a dam or area slated for development) selected. The polygon(s) in this layer will be used to select parcels in the parcel layer.</string>
+          <string>This plugin will use your current selected layer for selecting 'parcel' polygon in Parcel layer. If you want to download all diagram that fall into you current layer, please select all features or uncheck this following check box.</string>
          </property>
          <property name="wordWrap">
           <bool>true</bool>
          </property>
         </widget>
-       </item>
-       <item>
-        <layout class="QHBoxLayout" name="horizontalLayout_2">
-         <item>
-          <widget class="QLabel" name="site_layer_label">
-           <property name="text">
-            <string>Site layer</string>
-           </property>
-           <property name="buddy">
-            <cstring>combo_box_site_layer</cstring>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QComboBox" name="combo_box_site_layer">
-           <property name="styleSheet">
-            <string notr="true"/>
-           </property>
-          </widget>
-         </item>
-        </layout>
        </item>
        <item>
         <widget class="QCheckBox" name="selected_sites_only">
@@ -188,7 +167,6 @@
   </layout>
  </widget>
  <tabstops>
-  <tabstop>combo_box_site_layer</tabstop>
   <tabstop>selected_sites_only</tabstop>
   <tabstop>combo_box_parcel_layer</tabstop>
   <tabstop>combo_box_sg_code_field</tabstop>

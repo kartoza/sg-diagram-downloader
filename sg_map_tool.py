@@ -8,8 +8,7 @@
 from PyQt4.QtCore import Qt
 from PyQt4.QtGui import QProgressBar
 from qgis.core import (
-    QgsFeature,
-    QgsFeatureRequest)
+    QgsFeature, QgsFeatureRequest)
 from qgis.gui import QgsMapTool, QgsMessageBar
 
 from sg_utilities import (

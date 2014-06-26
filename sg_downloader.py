@@ -78,10 +78,11 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
         self.iface = iface
         self.populate_combo_box()
 
-        self.site_layer = None
+        self.site_layer = iface.activeLayer()
         self.parcel_layer = None
         self.sg_code_field = None
         self.output_directory = None
+        self.all_features = None
 
         self.database_manager = DatabaseManager(sg_diagrams_database)
 
@@ -100,34 +101,9 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
                 found_flag = True
                 text = layer.name()
                 data = str(layer.id())
-                self.combo_box_site_layer.insertItem(0, text, data)
                 self.combo_box_parcel_layer.insertItem(0, text, data)
         if found_flag:
-            self.combo_box_site_layer.setCurrentIndex(0)
             self.combo_box_parcel_layer.setCurrentIndex(0)
-
-    # noinspection PyPep8Naming
-    @pyqtSignature('int')
-    def on_combo_box_site_layer_currentIndexChanged(self, index=None):
-        """Automatic slot executed when the site layer is changed..
-
-        :param index: Passed by the signal that triggers this slot.
-        :type index: int
-        """
-        LOGGER.debug('site layer changed')
-        combo = self.combo_box_site_layer
-        layer_id = combo.itemData(index, Qt.UserRole)
-        # noinspection PyArgumentList
-        layer = QgsMapLayerRegistry.instance().mapLayer(layer_id)
-        if not self.layer_has_selection(layer):
-            self.site_layer_label.setStyleSheet('color: red;')
-            self.buttonBox.button(QtGui.QDialogButtonBox.Ok).setEnabled(False)
-            self.site_layer = None
-        else:
-            self.site_layer_label.setStyleSheet('color: green;')
-            self.buttonBox.button(QtGui.QDialogButtonBox.Ok).setEnabled(True)
-            self.site_layer = layer
-        return
 
     # noinspection PyPep8Naming
     @pyqtSignature('int')
@@ -186,7 +162,8 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
             return
 
         # check if no feature is selected
-        if not self.layer_has_selection(self.site_layer):
+        if (not self.layer_has_selection(self.site_layer) and
+                self.selected_sites_only.isChecked()):
             self.show_no_selection_warning()
             return
 
@@ -234,6 +211,7 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
             self.parcel_layer,
             self.sg_code_field,
             self.output_directory,
+            self.all_features,
             callback=progress_callback)
 
         message = 'Download completed'
@@ -254,7 +232,7 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
     def show_site_layer_information_message(self):
         """Helper to show information message about target layer."""
         message = (
-            'There is no target layer available. Please open a layer for '
+            'There is no site layer available. Please select a layer for '
             'it')
         # noinspection PyCallByClass
         QtGui.QMessageBox.information(
@@ -283,7 +261,9 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
         message = (
             'There are no features selected in your target layer (%s). Please '
             'select some features before trying to download the Surveyor '
-            'General diagram(s)' % self.site_layer.name())
+            'General diagram(s) or please uncheck "Use only selected sites. '
+            'Leave unchecked to fetch plans for all sites."' %
+            self.site_layer.name())
         # noinspection PyCallByClass
         QtGui.QMessageBox.information(
             self, self.tr('Surveyor General Diagram Downloader'), message)
@@ -293,15 +273,22 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
         home_user = expanduser("~")
 
         previous_settings = QSettings()
+
         previous_output_directory = str(previous_settings.value(
             'sg-diagram-downloader/output_directory', home_user, type=str))
         self.line_edit_output_directory.setText(previous_output_directory)
+
+        previous_all_features = bool(previous_settings.value(
+            'sg-diagram-downloader/all_features', True, type=bool))
+        self.selected_sites_only.setChecked(not previous_all_features)
 
     def save_state(self):
         """Save state from current session."""
         settings = QSettings()
         settings.setValue(
             'sg-diagram-downloader/output_directory', self.output_directory)
+        settings.setValue(
+            'sg-diagram-downloader/all_features', self.all_features)
 
     def get_user_options(self):
         """Obtain dialog current options that are input by the user."""
@@ -309,12 +296,7 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
 
         self.sg_code_field = self.combo_box_sg_code_field.currentText()
 
-        index = self.combo_box_site_layer.currentIndex()
-        site_layer_id = self.combo_box_site_layer.itemData(
-            index, Qt.UserRole)
-        # noinspection PyArgumentList
-        self.site_layer = QgsMapLayerRegistry.instance().mapLayer(
-            site_layer_id)
+        self.all_features = not self.selected_sites_only.isChecked()
 
         index = self.combo_box_parcel_layer.currentIndex()
         diagram_layer_id = self.combo_box_parcel_layer.itemData(

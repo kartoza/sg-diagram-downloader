@@ -330,7 +330,11 @@ def province_for_point(db_manager, centroid):
 
 
 def map_sg_codes_to_provinces(
-        db_manager, site_layer, parcels_layer, sg_code_field,):
+        db_manager,
+        site_layer,
+        parcels_layer,
+        sg_code_field,
+        all_features=False):
     """Obtains sg codes from target layer.
 
     :param db_manager: A database manager
@@ -345,6 +349,10 @@ def map_sg_codes_to_provinces(
     :param sg_code_field: Name of the field that contains sg code
     :type sg_code_field: str
 
+    :param all_features: If True select all features, else only the selected
+        ones.
+    :type all_features: bool
+
     :returns: Dict where key is sg code and value is province name
     :rtype: dict
     """
@@ -358,7 +366,10 @@ def map_sg_codes_to_provinces(
 
     parcels_provider = parcels_layer.dataProvider()
 
-    selected_features = site_layer.selectedFeatures()
+    if not all_features:
+        selected_features = site_layer.selectedFeatures()
+    else:
+        selected_features = site_layer.getFeatures()
     for selected_feature in selected_features:
         for feature in parcels_provider.getFeatures():
             geometry = selected_feature.geometry()
@@ -405,6 +416,7 @@ def download_sg_diagrams(
         diagram_layer,
         sg_code_field,
         output_directory,
+        all_features=False,
         callback=None):
     """Downloads all SG Diagrams.
 
@@ -423,6 +435,10 @@ def download_sg_diagrams(
     :param output_directory: Directory to put the diagram.
     :type output_directory: str
 
+    :param all_features: If True select all features, else only the selected
+        ones.
+    :type all_features: bool
+
     :param callback: A function to all to indicate progress. The function
         should accept params 'current' (int) and 'maximum' (int). Defaults to
         None.
@@ -436,7 +452,7 @@ def download_sg_diagrams(
         callback = print_progress_callback
 
     sg_codes_and_provinces = map_sg_codes_to_provinces(
-        db_manager, site_layer, diagram_layer, sg_code_field)
+        db_manager, site_layer, diagram_layer, sg_code_field, all_features)
     maximum = len(sg_codes_and_provinces)
     current = 0
     result = 'Fetching diagrams for %i SG Codes.\n'
