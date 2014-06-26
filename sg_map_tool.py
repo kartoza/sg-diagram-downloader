@@ -132,14 +132,12 @@ class SGMapTool(QgsMapTool):
         fetch_list = []
         all_fields = layer.pendingFields()
         text_fields = []
-
         # Ignore any columns that don't contain text data
         for field in all_fields:
             if field.typeName() == 'String' or field.typeName() == 'Text':
                 text_fields.append(field)
 
         self.setup_messagebar()
-
         sg_field = None
         while polygons.nextFeature(feature):
             geom = feature.geometry()
@@ -157,7 +155,6 @@ class SGMapTool(QgsMapTool):
                 # We already know which column has SG codes
                 value = str(feature[sg_field])
                 fetch_list.append(value)
-
         if len(fetch_list) == 0:
             self.iface.messageBar().pushMessage(
                 self.tr('SG Downloader.'),
@@ -180,7 +177,6 @@ class SGMapTool(QgsMapTool):
                 province,
                 output_path,
                 progress_callback)
-
         data_manager.close()
 
         log = file('sg_downloader.log', 'a')

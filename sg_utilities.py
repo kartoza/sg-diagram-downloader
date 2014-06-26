@@ -85,7 +85,7 @@ def get_office(db_manager, region_code=None, province=None):
 
         return result
     except DatabaseException as e:
-        print 'Database error', e
+        raise DatabaseException(e)
 
 
 def construct_url(db_manager, sg_code=None, province_name=None):
@@ -104,7 +104,6 @@ def construct_url(db_manager, sg_code=None, province_name=None):
     :rtype: str
     """
     if len(sg_code) != 21:
-        print sg_code
         raise Exception('length sg code is not 21')
 
     LOGGER.info('Constructing url for %s %s' % (sg_code, province_name))
@@ -251,7 +250,6 @@ def download_sg_diagram(
     except Exception, e:
         LOGGER.exception('Error constructing url')
         raise
-    print 'Download page: %s' % download_page
     # Parse link here
     download_links = parse_download_page(download_page)
 
@@ -262,11 +260,9 @@ def download_sg_diagram(
     count = 0
     total = len(download_links)
     report = 'Downloading documents for %s in %s\n' % (sg_code, province_name)
-
     for download_link in download_links:
         count += 1
-        callback(count, total, 'Downloading file %s of %s' % (count, total))
-
+        # callback(count, total, 'Downloading file %s of %s' % (count, total))
         try:
             file_path = download_from_url(download_link, output_directory)
         except Exception as e:
@@ -531,9 +527,9 @@ def diagram_directory():
     :rtype: str
     """
     settings = QSettings()
+    default_path = os.path.join(os.path.expanduser('~'), 'sg-diagrams')
     output_path = settings.value(
-        'SGDownloader/output_path',
-        os.path.join(os.path.dirname(__file__), 'diagrams'))
+        'sg-diagram-downloader/output_directory', default_path)
     if not os.path.exists(output_path):
         os.mkdir(output_path)
     return output_path

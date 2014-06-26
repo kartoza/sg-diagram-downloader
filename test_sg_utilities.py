@@ -160,12 +160,20 @@ class TestUtilities(unittest.TestCase):
 
     def test_download_sg_diagram(self):
         """Test for download sg diagram."""
-        sg_code = 'C01300000000001400000'
-        province_name = 'Western Cape'
-        output_directory = TEMP_DIR
-        report = download_sg_diagram(
-            self.database_manager, sg_code, province_name, output_directory)
-        self.assertEqual(4, report.count('Success'))
+        # Do it 5 times, just for checking that everything is fine.
+        # No worries, it will not download if the file is existed
+        i = 0
+        while i < 5:
+            sg_code = 'C01300000000001400000'
+            province_name = 'Western Cape'
+            output_directory = TEMP_DIR
+            report = download_sg_diagram(
+                self.database_manager,
+                sg_code,
+                province_name,
+                output_directory)
+            self.assertEqual(4, report.count('Success'))
+            i += 1
 
 if __name__ == '__main__':
     unittest.main()
