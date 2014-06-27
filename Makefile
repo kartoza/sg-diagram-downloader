@@ -40,14 +40,16 @@ PY_FILES = \
 	database_manager.py \
 	file_downloader.py \
 	proxy.py \
-	sg_exceptions.py
+	sg_exceptions.py \
+	sg_log.py
 
 EXTRAS = icon.png metadata.txt LICENSE README.md
 
 STYLES = styles
 
 UI_FILES = \
-	sg_downloader_base.ui
+	sg_downloader_base.ui \
+	sg_log_base.ui
 
 COMPILED_RESOURCE_FILES = resources_rc.py
 

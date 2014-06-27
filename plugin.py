@@ -210,7 +210,6 @@ class SGDiagramDownloader:
         map_tool = SGAction(
             icon,
             self.iface,
-            self.province_layer,
             'Interactive Downloader',
             'Click on a parcel to download its SG Diagram.')
         self.toolbar.addAction(map_tool)

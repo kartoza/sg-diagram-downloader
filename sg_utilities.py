@@ -205,16 +205,19 @@ def parse_download_page(download_page_url):
     """
     download_urls = []
     url_prefix = 'http://csg.dla.gov.za/esio/'
-    html = urllib.urlopen(download_page_url)
-    download_page_soup = BeautifulSoup(html)
-    urls = download_page_soup.find_all('a')
-    for url in urls:
-        full_url = url['href']
-        if full_url[0:2] == './':
-            full_url = full_url[2:]
-        full_url = url_prefix + full_url
-        download_urls.append(str(full_url))
-    return download_urls
+    try:
+        html = urllib.urlopen(download_page_url)
+        download_page_soup = BeautifulSoup(html)
+        urls = download_page_soup.find_all('a')
+        for url in urls:
+            full_url = url['href']
+            if full_url[0:2] == './':
+                full_url = full_url[2:]
+            full_url = url_prefix + full_url
+            download_urls.append(str(full_url))
+        return download_urls
+    except IOError as e:
+        raise DownloadException(e)
 
 
 def download_sg_diagram(

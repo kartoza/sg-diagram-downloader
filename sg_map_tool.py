@@ -19,6 +19,7 @@ from sg_utilities import (
     diagram_directory)
 
 from database_manager import DatabaseManager
+from sg_log import LogDialog
 import os
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 
@@ -27,7 +28,7 @@ class SGMapTool(QgsMapTool):
     """A map tool that lets you click on a parcel to download its SG Diagram.
     """
 
-    def __init__(self, iface, provinces_layer):
+    def __init__(self, iface):
         """Constructor.
 
         :param iface: A QGIS QgisInterface instance.
@@ -40,7 +41,6 @@ class SGMapTool(QgsMapTool):
         QgsMapTool.__init__(self, canvas)
         self.canvas = canvas
         self.iface = iface
-        self.provinces_layer = provinces_layer
         self.message_bar = None
         self.progress_bar = None
 
@@ -181,5 +181,22 @@ class SGMapTool(QgsMapTool):
         log = file('sg_downloader.log', 'a')
         log.write(result)
         log.close()
+
+        self.show_log(result, 'sg_downloader.log')
+        print 'fin'
         # Cant return string from canvas release event
         #return result
+
+    def show_log(self, log, log_path):
+        """Show log dialog.
+
+        :param log: Log in text
+        :type log: str
+
+        :param log_path: Log file path.
+        :type log_path: str
+        """
+        dialog = LogDialog(self.iface)
+        dialog.set_log(log, log_path)
+        dialog.exec_()
+        print 'show log'
