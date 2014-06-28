@@ -42,7 +42,13 @@ import urllib
 import sys
 from urlparse import urlparse
 from file_downloader import FileDownloader
-from sg_exceptions import DownloadException, DatabaseException, UrlException
+from sg_exceptions import (
+    DownloadException,
+    DatabaseException,
+    UrlException,
+    InvalidSGCodeException,
+    ParseException
+)
 from proxy import get_proxy
 from database_manager import DatabaseManager
 
@@ -88,6 +94,34 @@ def get_office(db_manager, region_code=None, province=None):
         raise DatabaseException(e)
 
 
+def is_valid_sg_code(value):
+    """Check if a string is a valid SG Code.
+
+    :param value: The string to be tested.
+    :type value: str
+
+    :returns: True if the code is valid, otherwise False.
+    :rtype: bool
+    """
+
+    # Regex to check for the presence of an SG 21 digit code e.g.
+    # C01900000000026300000
+    # I did a quick scan of all the unique starting letters from
+    # Gavin's test dataset and came up with OBCFNT
+    prefixes = 'OBCFNT'
+    sg_code_regex = QRegExp('^[%s][0-9]{20}$' % prefixes, Qt.CaseInsensitive)
+    validator = QRegExpValidator(sg_code_regex)
+    if len(value) != 21:
+        return False
+    if value[0] not in prefixes:
+        return False
+    acceptable, _, _ = validator.validate(value, 21)
+    if acceptable != QValidator.Acceptable:
+        return False
+
+    return True
+
+
 def construct_url(db_manager, sg_code=None, province_name=None):
     """Construct url to download sg diagram.
 
@@ -103,19 +137,24 @@ def construct_url(db_manager, sg_code=None, province_name=None):
     :returns: URL to download sg diagram.
     :rtype: str
     """
-    if len(sg_code) != 21:
-        raise Exception('length sg code is not 21')
-
     LOGGER.info('Constructing url for %s %s' % (sg_code, province_name))
+    if not is_valid_sg_code(sg_code):
+        raise InvalidSGCodeException
+
     if sg_code is None or province_name is None:
         raise UrlException()
 
     base_url = 'http://csg.dla.gov.za/esio/listdocument.jsp?'
     reg_division = sg_code[:8]
 
-    record = get_office(db_manager, reg_division, province_name)
+    try:
+        record = get_office(db_manager, reg_division, province_name)
+    except DatabaseException:
+        raise DatabaseException
+
     if record is None or bool(record) is None:
-        raise Exception('SG code and province name is not found in database')
+        raise DatabaseException
+
     office, office_number, typology = record
 
     erf = sg_code[8:16]
@@ -217,7 +256,7 @@ def parse_download_page(download_page_url):
             download_urls.append(str(full_url))
         return download_urls
     except IOError as e:
-        raise DownloadException(e)
+        raise ParseException(e)
 
 
 def download_sg_diagram(
@@ -250,11 +289,19 @@ def download_sg_diagram(
 
     try:
         download_page = construct_url(db_manager, sg_code, province_name)
-    except Exception, e:
-        LOGGER.exception('Error constructing url')
-        raise
-    # Parse link here
-    download_links = parse_download_page(download_page)
+    except (InvalidSGCodeException, DatabaseException, UrlException) as e:
+        report = (
+            'Failed: Downloading SG code %s fro province %s because of %s\n' %
+            (sg_code, province_name, e.reason))
+        return report
+
+    try:
+        download_links = parse_download_page(download_page)
+    except ParseException as e:
+        report = (
+            'Failed: Downloading SG code %s fro province %s because of %s\n' %
+            (sg_code, province_name, e.reason))
+        return report
 
     output_directory = os.path.join(output_directory, sg_code)
     if not os.path.exists(output_directory):
@@ -481,34 +528,6 @@ def download_sg_diagrams(
     log.write(result)
     log.close()
     return result
-
-
-def is_valid_sg_code(value):
-    """Check if a string is a valid SG Code.
-
-    :param value: The string to be tested.
-    :type value: str
-
-    :returns: True if the code is valid, otherwise False.
-    :rtype: bool
-    """
-
-    # Regex to check for the presence of an SG 21 digit code e.g.
-    # C01900000000026300000
-    # I did a quick scan of all the unique starting letters from
-    # Gavin's test dataset and came up with OBCFNT
-    prefixes = 'OBCFNT'
-    sg_code_regex = QRegExp('^[%s][0-9]{20}$' % prefixes, Qt.CaseInsensitive)
-    validator = QRegExpValidator(sg_code_regex)
-    if len(value) != 21:
-        return False
-    if value[0] not in prefixes:
-        return False
-    acceptable, _, _ = validator.validate(value, 21)
-    if acceptable != QValidator.Acceptable:
-        return False
-
-    return True
 
 
 def point_to_rectangle(point):

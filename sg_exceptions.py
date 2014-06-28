@@ -27,15 +27,25 @@ __copyright__ = ''
 
 
 class DownloadException(Exception):
-    """Raised if radii for volcano buffer is not as we expect."""
+    """Raised download is failed."""
     reason = 'Failed to download file'
 
 
 class DatabaseException(Exception):
-    """Raised if radii for volcano buffer is not as we expect."""
-    reason = 'Failed to execute query'
+    """Raised if return None or error in executing query."""
+    reason = 'Failed to execute query.'
 
 
 class UrlException(Exception):
-    """Raised if radii for volcano buffer is not as we expect."""
-    reason = 'Failed to construct url'
+    """Raised if the url is failed to construct."""
+    reason = 'Failed to construct url.'
+
+
+class InvalidSGCodeException(Exception):
+    """Raised if sg code is not valid."""
+    reason = 'Invalid sg code.'
+
+
+class ParseException(Exception):
+    """Raised if error in parsing html page."""
+    reason = 'Failed to parse html page.'
