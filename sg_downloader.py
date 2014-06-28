@@ -134,7 +134,7 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
             self.tr('Set output directory'),
             self.output_directory
         )
-        if new_output_directory is not None:
+        if new_output_directory:
             self.output_directory = new_output_directory
         self.line_edit_output_directory.setText(self.output_directory)
 
@@ -148,7 +148,7 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
             self.tr('Set log file'),
             self.log_file,
             self.tr('Log file (*.log)'))
-        if new_log_file is not None:
+        if new_log_file:
             self.log_file = new_log_file
         self.line_edit_log_file.setText(self.log_file)
 
