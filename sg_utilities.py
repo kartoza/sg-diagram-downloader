@@ -67,6 +67,23 @@ DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 SG_DIAGRAM_SQLITE3 = os.path.join(DATA_DIR, 'sg_diagrams.sqlite')
 
 
+def write_log(log, log_path):
+    """Show log dialog.
+
+    :param log: Log in text
+    :type log: str
+
+    :param log_path: Log file path.
+    :type log_path: str
+    """
+    try:
+        f = open(log_path, 'a')
+        f.write(log)
+        f.close()
+    except IOError as e:
+        raise e
+
+
 def get_office(db_manager, region_code=None, province=None):
     """Get office and office no from database using region_code and province.
 
@@ -221,7 +238,7 @@ def download_from_url(url, output_directory, filename=None, use_cache=True):
     try:
         result = downloader.download()
     except IOError as ex:
-        raise IOError(ex)
+        raise DownloadException(ex)
 
     if result[0] is not True:
         _, error_message = result
@@ -287,19 +304,21 @@ def download_sg_diagram(
     if callback is None:
         callback = print_progress_callback
 
+    report = 'Downloading documents for %s in %s\n' % (sg_code, province_name)
+
     try:
         download_page = construct_url(db_manager, sg_code, province_name)
     except (InvalidSGCodeException, DatabaseException, UrlException) as e:
-        report = (
-            'Failed: Downloading SG code %s fro province %s because of %s\n' %
+        report += (
+            'Failed: Downloading SG code %s for province %s because of %s\n' %
             (sg_code, province_name, e.reason))
         return report
 
     try:
         download_links = parse_download_page(download_page)
     except ParseException as e:
-        report = (
-            'Failed: Downloading SG code %s fro province %s because of %s\n' %
+        report += (
+            'Failed: Downloading SG code %s for province %s because of %s\n' %
             (sg_code, province_name, e.reason))
         return report
 
@@ -309,30 +328,31 @@ def download_sg_diagram(
 
     count = 0
     total = len(download_links)
-    report = 'Downloading documents for %s in %s\n' % (sg_code, province_name)
+    if total == 0:
+        report += 'No documents found for %s in %s' % (sg_code, province_name)
+
     for download_link in download_links:
         count += 1
-        # callback(count, total, 'Downloading file %s of %s' % (count, total))
+        message = ('[%s - %s] Downloading file %s of %s' % (
+            sg_code, province_name, count, total))
+        callback(count, total, message)
         try:
             file_path = download_from_url(download_link, output_directory)
-        except Exception as e:
-            message = 'Failed to download %s' % download_link
+            if file_path is not None:
+                report += 'Success: File %i of %i : %s saved to %s\n' % (
+                    count, total, download_link, file_path)
+            else:
+                report += 'Failed: File %i of %i : %s \n' % (
+                    count, total, download_link)
+        except DownloadException as e:
+            message = 'Failed to download %s for %s in %s because %s' % (
+                download_link, sg_code, province_name, e.reason)
             LOGGER.exception(message)
-            raise Exception(str(e) + message)
+            report += 'Failed: File %i of %i : %s \n' % (
+                count, total, download_link)
 
-        if file_path is not None:
-            status = 'Success'
-        else:
-            status = 'Error'
-
-        report += '%s: File %i of %i : %s saved to %s\n' % (
-            status,
-            count,
-            total,
-            download_link,
-            file_path
-        )
-    callback(count, total, 'Downloads completed')
+    message = 'Downloads completed for %s in %s' % (sg_code, province_name)
+    callback(count, total, message)
     return report
 
 
@@ -505,29 +525,23 @@ def download_sg_diagrams(
         db_manager, site_layer, diagram_layer, sg_code_field, all_features)
     maximum = len(sg_codes_and_provinces)
     current = 0
-    result = 'Fetching diagrams for %i SG Codes.\n'
-    result += '====================================\n'
+    report = ''
     for sg_code, province in sg_codes_and_provinces.iteritems():
         current += 1
-        message = '%s Downloading %s\n' % (datetime.now(), sg_code)
+        message = 'Downloading SG Code %s from %s' % (sg_code, province)
         callback(current, maximum, message)
-        result += message
-
         try:
-            result += download_sg_diagram(
+            report += download_sg_diagram(
                 db_manager,
                 sg_code,
                 province,
                 output_directory,
                 callback)
         except Exception, e:
-            result += 'Failed to download %s %s %s\n' % (sg_code, province, e)
+            report += 'Failed to download %s %s %s\n' % (sg_code, province, e)
             LOGGER.exception(e)
 
-    log = file('sg_downloader.log', 'a')
-    log.write(result)
-    log.close()
-    return result
+    return report
 
 
 def point_to_rectangle(point):

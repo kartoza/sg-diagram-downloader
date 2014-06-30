@@ -5,10 +5,9 @@
 # Enable SIP v2
 
 #from PyQt4.QtGui import QRegExpValidator, QValidator
-from PyQt4.QtCore import Qt
+from PyQt4.QtCore import Qt, QSettings
 from PyQt4.QtGui import QProgressBar
-from qgis.core import (
-    QgsFeature, QgsFeatureRequest)
+from qgis.core import QgsFeature, QgsFeatureRequest
 from qgis.gui import QgsMapTool, QgsMessageBar
 
 from sg_utilities import (
@@ -16,11 +15,12 @@ from sg_utilities import (
     province_for_point,
     is_valid_sg_code,
     point_to_rectangle,
-    diagram_directory)
+    write_log)
 
 from database_manager import DatabaseManager
 from sg_log import LogDialog
 import os
+from os.path import expanduser
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 
 
@@ -33,9 +33,6 @@ class SGMapTool(QgsMapTool):
 
         :param iface: A QGIS QgisInterface instance.
         :type iface: QgisInterface
-
-        :param provinces_layer: A layer containing provincial boundaries.
-        :type provinces_layer: QgsVectorLayer
         """
         canvas = iface.mapCanvas()
         QgsMapTool.__init__(self, canvas)
@@ -43,6 +40,10 @@ class SGMapTool(QgsMapTool):
         self.iface = iface
         self.message_bar = None
         self.progress_bar = None
+        self.output_directory = None
+        self.log_file = None
+
+        self.restore_state()
 
         sg_diagrams_database = os.path.join(DATA_DIR, 'sg_diagrams.sqlite')
 
@@ -64,7 +65,7 @@ class SGMapTool(QgsMapTool):
         """
         pass
 
-    def setup_messagebar(self):
+    def setup_message_bar(self):
         """Setup a QgsMessageBar for use from callback and user notifications.
         """
         if self.message_bar is not None:
@@ -113,7 +114,7 @@ class SGMapTool(QgsMapTool):
             self.tr('SG Downloader.'),
             self.tr('Preparing for download'),
             level=QgsMessageBar.INFO,
-            duration=10)
+            duration=1)
 
         # No need to check that it is a valid, polygon layer
         # as the QAction for this map tool already does that
@@ -136,13 +137,13 @@ class SGMapTool(QgsMapTool):
             if field.typeName() == 'String' or field.typeName() == 'Text':
                 text_fields.append(field)
 
-        self.setup_messagebar()
+        self.setup_message_bar()
         sg_field = None
         while polygons.nextFeature(feature):
-            geom = feature.geometry()
-            attributes = feature.attributes()
-            matched = False
-            sg_code = None
+            # geom = feature.geometry()
+            # attributes = feature.attributes()
+            # matched = False
+            # sg_code = None
             if sg_field is None:
                 for field in text_fields:
                     value = str(feature[field.name()])
@@ -163,29 +164,30 @@ class SGMapTool(QgsMapTool):
             return
 
         province = province_for_point(self.db_manager, place)
-        result = ''
-        output_path = diagram_directory()
 
+        report = ''
         sg_diagrams_database = os.path.join(DATA_DIR, 'sg_diagrams.sqlite')
         data_manager = DatabaseManager(sg_diagrams_database)
 
+        i = 0
         for sg_code in fetch_list:
-            result += download_sg_diagram(
+            i += 1
+            message = 'Downloading SG Code %s from %s' % (sg_code, province)
+            progress_callback(i, len(fetch_list), message)
+            report += download_sg_diagram(
                 data_manager,
                 sg_code,
                 province,
-                output_path,
-                progress_callback)
+                self.output_directory,
+                callback=progress_callback)
         data_manager.close()
 
-        log = file('sg_downloader.log', 'a')
-        log.write(result)
-        log.close()
+        try:
+            write_log(report, self.log_file)
+        except IOError as e:
+            print e
 
-        self.show_log(result, 'sg_downloader.log')
-        print 'fin'
-        # Cant return string from canvas release event
-        #return result
+        self.show_log(report, self.log_file)
 
     def show_log(self, log, log_path):
         """Show log dialog.
@@ -199,4 +201,16 @@ class SGMapTool(QgsMapTool):
         dialog = LogDialog(self.iface)
         dialog.set_log(log, log_path)
         dialog.exec_()
-        print 'show log'
+
+    def restore_state(self):
+        """Restore state from previous session."""
+        home_user = expanduser("~")
+        default_log_file = os.path.join(home_user, 'sg_downloader.log')
+
+        previous_settings = QSettings()
+
+        self.output_directory = str(previous_settings.value(
+            'sg-diagram-downloader/output_directory', home_user, type=str))
+
+        self.log_file = str(previous_settings.value(
+            'sg-diagram-downloader/log_file', default_log_file, type=str))

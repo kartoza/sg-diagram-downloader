@@ -28,7 +28,8 @@ from sg_utilities import (
     is_valid_sg_code,
     point_to_rectangle,
     diagram_directory,
-    download_sg_diagram)
+    download_sg_diagram,
+    construct_url)
 
 from database_manager import DatabaseManager
 
@@ -174,6 +175,18 @@ class TestUtilities(unittest.TestCase):
                 output_directory)
             self.assertEqual(4, report.count('Success'))
             i += 1
+
+    def test_construct_url(self):
+        """Test constructing url."""
+        sg_code = 'C01300000000076700000'
+        province = 'Western Cape'
+        url = construct_url(self.database_manager, sg_code, province)
+        expected_url = (
+            'http://csg.dla.gov.za/esio/listdocument.jsp?regDivision='
+            'C0130000&office=SGCTN&Noffice=2&Erf=00000767&Portion=00000')
+
+        message = 'Expected %s, got %s' % (expected_url, url)
+        self.assertEqual(url, expected_url, message)
 
 if __name__ == '__main__':
     unittest.main()

@@ -45,7 +45,7 @@ from PyQt4.QtCore import pyqtSignature, QSettings
 from qgis.gui import QgsMessageBar
 from sg_log import LogDialog
 
-from sg_utilities import download_sg_diagrams
+from sg_utilities import download_sg_diagrams, write_log
 from database_manager import DatabaseManager
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
@@ -204,7 +204,7 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
         self.iface.messageBar().pushWidget(
             message_bar, self.iface.messageBar().INFO)
         self.message_bar = message_bar
-
+        self.save_state()
         self.close()
 
         def progress_callback(current, maximum, message=None):
@@ -225,7 +225,7 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
                 progress_bar.setMaximum(maximum)
                 progress_bar.setValue(current)
 
-        download_sg_diagrams(
+        report = download_sg_diagrams(
             self.database_manager,
             self.site_layer,
             self.parcel_layer,
@@ -233,9 +233,6 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
             self.output_directory,
             self.all_features,
             callback=progress_callback)
-
-        message = 'Download completed'
-        progress_callback(100, 100, message)
 
         # Get rid of the message bar again.
         self.iface.messageBar().popWidget(message_bar)
@@ -246,9 +243,8 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
             self.tr('Your files are available in %s.' % self.output_directory),
             level=QgsMessageBar.INFO,
             duration=10)
-
-        self.save_state()
-        self.show_log('', self.log_file)
+        write_log(report, self.log_file)
+        self.show_log(report, self.log_file)
 
     def show_site_layer_information_message(self):
         """Helper to show information message about target layer."""
@@ -349,4 +345,3 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
         dialog = LogDialog(self.iface)
         dialog.set_log(log, log_path)
         dialog.exec_()
-        print 'show log'
