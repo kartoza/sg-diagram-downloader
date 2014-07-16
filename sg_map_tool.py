@@ -114,7 +114,7 @@ class SGMapTool(QgsMapTool):
             self.tr('SG Downloader.'),
             self.tr('Preparing for download'),
             level=QgsMessageBar.INFO,
-            duration=1)
+            duration=10)
 
         # No need to check that it is a valid, polygon layer
         # as the QAction for this map tool already does that
