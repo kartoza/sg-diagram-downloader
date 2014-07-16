@@ -10,9 +10,9 @@
 name=SG Diagram Downloader
 qgisMinimumVersion=2.0
 description=A tool for QGIS that will download SG (South African Surveyor General) diagrams.
-version=1.0.1
-author=Linfiniti Consulting CC.
-email=tim@linfiniti.com
+version=1.0.2
+author=Kartoza PTY (Ltd)
+email=tim@kartoza.com
 
 # End of mandatory metadata
 
@@ -24,9 +24,9 @@ email=tim@linfiniti.com
 # Tags are comma separated with spaces allowed
 tags=diagram,download
 
-homepage=https://github.com/timlinux/sg-diagram-downloader
-tracker=https://github.com/timlinux/sg-diagram-downloader/issues
-repository=git://github.com/timlinux/sg-diagram-downloader.git
+homepage=https://github.com/kartoza/sg-diagram-downloader
+tracker=https://github.com/kartoza/sg-diagram-downloader/issues
+repository=git://github.com/kartoza/sg-diagram-downloader.git
 icon=icon.png
 # experimental flag
 experimental=False
