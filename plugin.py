@@ -203,7 +203,7 @@ class SGDiagramDownloader:
             text=self.tr(u'Download Surveyor General Diagram',),
             callback=self.show_download_dialog,
             parent=self.iface.mainWindow(),
-            add_to_toolbar=False,
+            add_to_toolbar=True,
             add_to_menu=True)
         # Special case setup for our map tool which uses custom QAction
         # icon = QIcon(':/plugins/SGDiagramDownloader/maptool.svg')
