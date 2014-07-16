@@ -27,11 +27,16 @@ from sg_utilities import (
     get_filename,
     is_valid_sg_code,
     point_to_rectangle,
-    diagram_directory)
+    diagram_directory,
+    download_sg_diagram,
+    construct_url)
 
+from database_manager import DatabaseManager
 
 DATA_TEST_DIR = os.path.join(os.path.dirname(__file__), 'test', 'data')
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
+
+sg_diagrams_database = os.path.join(DATA_DIR, 'sg_diagrams.sqlite')
 
 from test.utilities_for_testing import get_qgis_app
 
@@ -40,16 +45,27 @@ QGIS_APP = get_qgis_app()
 erf_layer = os.path.join(DATA_TEST_DIR, 'erf.shp')
 farm_portion_layer = os.path.join(DATA_TEST_DIR, 'farm_portion.shp')
 parent_farm_layer = os.path.join(DATA_TEST_DIR, 'parent_farm.shp')
-provinces_layer = os.path.join(DATA_DIR, 'provinces.shp')
 purchaseplan_layer = os.path.join(DATA_TEST_DIR, 'purchaseplan.shp')
 
 
 class TestUtilities(unittest.TestCase):
+    # merely assign an attribute
+    database_manager = None
+
+    @classmethod
+    def setUpClass(cls):
+        """Setup Test Class."""
+        cls.database_manager = DatabaseManager(sg_diagrams_database)
+
+    @classmethod
+    def tearDownClass(cls):
+        """Tear down Test Class."""
+        cls.database_manager.close()
+
     def test_data(self):
         self.assertTrue(os.path.exists(erf_layer), erf_layer)
         self.assertTrue(os.path.exists(farm_portion_layer), farm_portion_layer)
         self.assertTrue(os.path.exists(parent_farm_layer), parent_farm_layer)
-        self.assertTrue(os.path.exists(provinces_layer), provinces_layer)
         self.assertTrue(os.path.exists(purchaseplan_layer), purchaseplan_layer)
 
     def test_download_from_url(self):
@@ -71,12 +87,10 @@ class TestUtilities(unittest.TestCase):
         diagram_layer = get_temp_shapefile_layer(
             parent_farm_layer, 'parent farm')
         sg_code_field = 'id'
-        sa_provinces_layer = get_temp_shapefile_layer(
-            provinces_layer, 'provinces')
 
         site_layer.setSelectedFeatures([7])
         sg_codes = map_sg_codes_to_provinces(
-            site_layer, diagram_layer, sg_code_field, sa_provinces_layer)
+            self.database_manager, site_layer, diagram_layer, sg_code_field)
         message = (
             'The number of sg codes extracted should be 33. I got %s' % len(
                 sg_codes))
@@ -88,14 +102,15 @@ class TestUtilities(unittest.TestCase):
         region_code = 'C0020000'
 
         expected_result = 'SGELN', '8', 'Rural'
-        result = get_office(region_code, province)
+        result = get_office(self.database_manager, region_code, province)
         message = 'Expected %s got %s' % (expected_result, result)
         self.assertEqual(expected_result, result, message)
 
         province = 'Eastern Cape XXX'
         region_code = 'C0020000'
         message = 'Should be None'
-        self.assertIsNone(get_office(region_code, province), message)
+        self.assertIsNone(
+            get_office(self.database_manager, region_code, province), message)
 
     def test_parse_download_page(self):
         """Test for parse_download_page."""
@@ -126,6 +141,7 @@ class TestUtilities(unittest.TestCase):
         self.assertFalse(is_valid_sg_code('B019000000000263000000'))
         # Too short
         self.assertFalse(is_valid_sg_code('B01900000000026300'))
+        self.assertFalse(is_valid_sg_code('C0190000000002630000X'))
 
     def test_point_to_rectangle(self):
         """Test for point to rectangle."""
@@ -142,6 +158,35 @@ class TestUtilities(unittest.TestCase):
         """Test we can get the diagram directory properly."""
         path = diagram_directory()
         self.assertTrue(os.path.exists(path))
+
+    def test_download_sg_diagram(self):
+        """Test for download sg diagram."""
+        # Do it 5 times, just for checking that everything is fine.
+        # No worries, it will not download if the file is existed
+        i = 0
+        while i < 5:
+            sg_code = 'C01300000000001400000'
+            province_name = 'Western Cape'
+            output_directory = TEMP_DIR
+            report = download_sg_diagram(
+                self.database_manager,
+                sg_code,
+                province_name,
+                output_directory)
+            self.assertEqual(4, report.count('Success'))
+            i += 1
+
+    def test_construct_url(self):
+        """Test constructing url."""
+        sg_code = 'C01300000000076700000'
+        province = 'Western Cape'
+        url = construct_url(self.database_manager, sg_code, province)
+        expected_url = (
+            'http://csg.dla.gov.za/esio/listdocument.jsp?regDivision='
+            'C0130000&office=SGCTN&Noffice=2&Erf=00000767&Portion=00000')
+
+        message = 'Expected %s, got %s' % (expected_url, url)
+        self.assertEqual(url, expected_url, message)
 
 if __name__ == '__main__':
     unittest.main()

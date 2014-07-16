@@ -28,7 +28,6 @@ __copyright__ = ''
 import os
 from os.path import expanduser
 import logging
-from datetime import datetime
 
 # Import the PyQt and QGIS libraries
 # this import required to enable PyQt API v2
@@ -44,8 +43,14 @@ from PyQt4.QtCore import Qt
 from PyQt4.QtGui import QProgressBar
 from PyQt4.QtCore import pyqtSignature, QSettings
 from qgis.gui import QgsMessageBar
+from sg_log import LogDialog
 
-from sg_utilities import download_sg_diagrams
+from sg_utilities import download_sg_diagrams, write_log
+from database_manager import DatabaseManager
+
+DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
+
+sg_diagrams_database = os.path.join(DATA_DIR, 'sg_diagrams.sqlite')
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'sg_downloader_base.ui'))
@@ -56,13 +61,10 @@ LOGGER = logging.getLogger('QGIS')
 # noinspection PyArgumentList
 class DownloadDialog(QtGui.QDialog, FORM_CLASS):
     """GUI for downloading SG Plans."""
-    def __init__(self, iface, provinces_layer, parent=None):
+    def __init__(self, iface, parent=None):
         """Constructor.
 
-
-
         :param iface:
-        :param provinces_layer:
         :param parent:
         """
         super(DownloadDialog, self).__init__(parent)
@@ -76,12 +78,16 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
         self.message_bar = None
         self.iface = iface
         self.populate_combo_box()
-        self.provinces_layer = provinces_layer
 
-        self.site_layer = None
+        self.site_layer = iface.activeLayer()
         self.parcel_layer = None
         self.sg_code_field = None
         self.output_directory = None
+        self.all_features = None
+        self.log_file = None
+
+        self.database_manager = DatabaseManager(sg_diagrams_database)
+
         self.restore_state()
 
     def populate_combo_box(self):
@@ -97,34 +103,9 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
                 found_flag = True
                 text = layer.name()
                 data = str(layer.id())
-                self.combo_box_site_layer.insertItem(0, text, data)
                 self.combo_box_parcel_layer.insertItem(0, text, data)
         if found_flag:
-            self.combo_box_site_layer.setCurrentIndex(0)
             self.combo_box_parcel_layer.setCurrentIndex(0)
-
-    # noinspection PyPep8Naming
-    @pyqtSignature('int')
-    def on_combo_box_site_layer_currentIndexChanged(self, index=None):
-        """Automatic slot executed when the site layer is changed..
-
-        :param index: Passed by the signal that triggers this slot.
-        :type index: int
-        """
-        LOGGER.debug('site layer changed')
-        combo = self.combo_box_site_layer
-        layer_id = combo.itemData(index, Qt.UserRole)
-        # noinspection PyArgumentList
-        layer = QgsMapLayerRegistry.instance().mapLayer(layer_id)
-        if not self.layer_has_selection(layer):
-            self.site_layer_label.setStyleSheet('color: red;')
-            self.buttonBox.button(QtGui.QDialogButtonBox.Ok).setEnabled(False)
-            self.site_layer = None
-        else:
-            self.site_layer_label.setStyleSheet('color: green;')
-            self.buttonBox.button(QtGui.QDialogButtonBox.Ok).setEnabled(True)
-            self.site_layer = layer
-        return
 
     # noinspection PyPep8Naming
     @pyqtSignature('int')
@@ -148,10 +129,28 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
         """Auto-connect slot activated when cache file tool button is clicked.
         """
         # noinspection PyCallByClass,PyTypeChecker
-        self.output_directory = QtGui.QFileDialog.getExistingDirectory(
+        new_output_directory = QtGui.QFileDialog.getExistingDirectory(
             self,
-            self.tr('Set output directory'))
+            self.tr('Set output directory'),
+            self.output_directory
+        )
+        if new_output_directory:
+            self.output_directory = new_output_directory
         self.line_edit_output_directory.setText(self.output_directory)
+
+    @pyqtSignature('')  # prevents actions being handled twice
+    def on_log_file_button_clicked(self):
+        """Auto-connect slot activated when cache file tool button is clicked.
+        """
+        # noinspection PyCallByClass,PyTypeChecker
+        new_log_file = QtGui.QFileDialog.getSaveFileName(
+            self,
+            self.tr('Set log file'),
+            self.log_file,
+            self.tr('Log file (*.log)'))
+        if new_log_file:
+            self.log_file = new_log_file
+        self.line_edit_log_file.setText(self.log_file)
 
     # noinspection PyArgumentList
     @staticmethod
@@ -183,7 +182,8 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
             return
 
         # check if no feature is selected
-        if not self.layer_has_selection(self.site_layer):
+        if (not self.layer_has_selection(self.site_layer) and
+                self.selected_sites_only.isChecked()):
             self.show_no_selection_warning()
             return
 
@@ -204,7 +204,7 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
         self.iface.messageBar().pushWidget(
             message_bar, self.iface.messageBar().INFO)
         self.message_bar = message_bar
-
+        self.save_state()
         self.close()
 
         def progress_callback(current, maximum, message=None):
@@ -225,18 +225,14 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
                 progress_bar.setMaximum(maximum)
                 progress_bar.setValue(current)
 
-        download_sg_diagrams(
+        report = download_sg_diagrams(
+            self.database_manager,
             self.site_layer,
             self.parcel_layer,
             self.sg_code_field,
             self.output_directory,
-            self.provinces_layer,
+            self.all_features,
             callback=progress_callback)
-
-        print datetime.now(), '198'
-
-        message = 'Download completed'
-        progress_callback(100, 100, message)
 
         # Get rid of the message bar again.
         self.iface.messageBar().popWidget(message_bar)
@@ -247,13 +243,13 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
             self.tr('Your files are available in %s.' % self.output_directory),
             level=QgsMessageBar.INFO,
             duration=10)
-
-        self.save_state()
+        write_log(report, self.log_file)
+        self.show_log(report, self.log_file)
 
     def show_site_layer_information_message(self):
         """Helper to show information message about target layer."""
         message = (
-            'There is no target layer available. Please open a layer for '
+            'There is no site layer available. Please select a layer for '
             'it')
         # noinspection PyCallByClass
         QtGui.QMessageBox.information(
@@ -282,7 +278,9 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
         message = (
             'There are no features selected in your target layer (%s). Please '
             'select some features before trying to download the Surveyor '
-            'General diagram(s)' % self.site_layer.name())
+            'General diagram(s) or please uncheck "Use only selected sites. '
+            'Leave unchecked to fetch plans for all sites."' %
+            self.site_layer.name())
         # noinspection PyCallByClass
         QtGui.QMessageBox.information(
             self, self.tr('Surveyor General Diagram Downloader'), message)
@@ -290,17 +288,33 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
     def restore_state(self):
         """Restore state from previous session."""
         home_user = expanduser("~")
+        default_log_file = os.path.join(home_user, 'sg_downloader.log')
 
         previous_settings = QSettings()
+
         previous_output_directory = str(previous_settings.value(
             'sg-diagram-downloader/output_directory', home_user, type=str))
         self.line_edit_output_directory.setText(previous_output_directory)
+
+        previous_log_file = str(previous_settings.value(
+            'sg-diagram-downloader/log_file', default_log_file, type=str))
+        self.line_edit_log_file.setText(previous_log_file)
+
+        previous_all_features = bool(previous_settings.value(
+            'sg-diagram-downloader/all_features', True, type=bool))
+        self.selected_sites_only.setChecked(not previous_all_features)
+
+        self.get_user_options()
 
     def save_state(self):
         """Save state from current session."""
         settings = QSettings()
         settings.setValue(
             'sg-diagram-downloader/output_directory', self.output_directory)
+        settings.setValue(
+            'sg-diagram-downloader/all_features', self.all_features)
+        settings.setValue(
+            'sg-diagram-downloader/log_file', self.log_file)
 
     def get_user_options(self):
         """Obtain dialog current options that are input by the user."""
@@ -308,16 +322,26 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
 
         self.sg_code_field = self.combo_box_sg_code_field.currentText()
 
-        index = self.combo_box_site_layer.currentIndex()
-        site_layer_id = self.combo_box_site_layer.itemData(
-            index, Qt.UserRole)
-        # noinspection PyArgumentList
-        self.site_layer = QgsMapLayerRegistry.instance().mapLayer(
-            site_layer_id)
+        self.all_features = not self.selected_sites_only.isChecked()
+
+        self.log_file = self.line_edit_log_file.text()
 
         index = self.combo_box_parcel_layer.currentIndex()
-        diagram_layer_id = self.combo_box_parcel_layer.itemData(
+        parcel_layer_id = self.combo_box_parcel_layer.itemData(
             index, Qt.UserRole)
         # noinspection PyArgumentList
         self.parcel_layer = QgsMapLayerRegistry.instance().mapLayer(
-            diagram_layer_id)
+            parcel_layer_id)
+
+    def show_log(self, log, log_path):
+        """Show log dialog.
+
+        :param log: Log in text
+        :type log: str
+
+        :param log_path: Log file path.
+        :type log_path: str
+        """
+        dialog = LogDialog(self.iface)
+        dialog.set_log(log, log_path)
+        dialog.exec_()

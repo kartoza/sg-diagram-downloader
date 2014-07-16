@@ -19,8 +19,6 @@ Utilities for Surveyor General Diagram
  *                                                                         *
  ***************************************************************************/
 """
-from PyQt4.QtCore import QRegExp, Qt, QSettings
-
 __author__ = 'ismail@linfiniti.com'
 __revision__ = '$Format:%H$'
 __date__ = '30/05/2014'
@@ -33,14 +31,26 @@ from qgis.core import (
     QgsVectorLayer,
     QgsFeature,
     QgsFeatureRequest,
-    QgsSpatialIndex, QgsRectangle)
+    QgsSpatialIndex,
+    QgsRectangle)
 
-import pycurl
-import sqlite3
+from PyQt4.QtNetwork import QNetworkAccessManager
+from PyQt4.QtCore import QRegExp, Qt, QSettings
+from PyQt4.QtGui import QRegExpValidator, QValidator
+
 import urllib
 import sys
 from urlparse import urlparse
-
+from file_downloader import FileDownloader
+from sg_exceptions import (
+    DownloadException,
+    DatabaseException,
+    UrlException,
+    InvalidSGCodeException,
+    ParseException
+)
+from proxy import get_proxy
+from database_manager import DatabaseManager
 
 third_party_path = os.path.abspath(
     os.path.join(os.path.dirname(__file__), 'third_party'))
@@ -54,13 +64,31 @@ from bs4 import BeautifulSoup
 from custom_logging import LOGGER
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
-PROVINCES_LAYER_PATH = os.path.join(DATA_DIR, 'provinces.shp')
-REGIONAL_OFFICES_SQLITE3 = os.path.join(
-    DATA_DIR, 'sg_regional_offices.sqlite3')
+SG_DIAGRAM_SQLITE3 = os.path.join(DATA_DIR, 'sg_diagrams.sqlite')
 
 
-def get_office(region_code=None, province=None):
+def write_log(log, log_path):
+    """Show log dialog.
+
+    :param log: Log in text
+    :type log: str
+
+    :param log_path: Log file path.
+    :type log_path: str
+    """
+    try:
+        f = open(log_path, 'a')
+        f.write(log)
+        f.close()
+    except IOError as e:
+        raise e
+
+
+def get_office(db_manager, region_code=None, province=None):
     """Get office and office no from database using region_code and province.
+
+    :param db_manager: A database manager
+    :type db_manager: DatabaseManager
 
     :param region_code: SG code.
     :type region_code: str
@@ -72,52 +100,78 @@ def get_office(region_code=None, province=None):
     :rtype: tuple
     """
     try:
-        db_connection = sqlite3.connect(REGIONAL_OFFICES_SQLITE3)
-        db_cursor = db_connection.cursor()
         query = (
             "SELECT office, office_no, typology FROM regional_office WHERE "
             "province='%s' AND region_code='%s'" % (province, region_code))
 
-        print 'Executing %s' % query
-        db_cursor.execute(query)
-        db_connection.commit()
+        result = db_manager.fetch_one(query)
 
-        row = db_cursor.fetchone()
-
-        db_connection.close()
-
-        return row
-    except sqlite3.DatabaseError as e:
-        print 'Database error', e
+        return result
+    except DatabaseException as e:
+        raise DatabaseException(e)
 
 
-def construct_url(sg_code=None, province=None):
+def is_valid_sg_code(value):
+    """Check if a string is a valid SG Code.
+
+    :param value: The string to be tested.
+    :type value: str
+
+    :returns: True if the code is valid, otherwise False.
+    :rtype: bool
+    """
+
+    # Regex to check for the presence of an SG 21 digit code e.g.
+    # C01900000000026300000
+    # I did a quick scan of all the unique starting letters from
+    # Gavin's test dataset and came up with OBCFNT
+    prefixes = 'OBCFNT'
+    sg_code_regex = QRegExp('^[%s][0-9]{20}$' % prefixes, Qt.CaseInsensitive)
+    validator = QRegExpValidator(sg_code_regex)
+    if len(value) != 21:
+        return False
+    if value[0] not in prefixes:
+        return False
+    acceptable, _, _ = validator.validate(value, 21)
+    if acceptable != QValidator.Acceptable:
+        return False
+
+    return True
+
+
+def construct_url(db_manager, sg_code=None, province_name=None):
     """Construct url to download sg diagram.
+
+    :param db_manager: A database manager
+    :type db_manager: DatabaseManager
 
     :param sg_code: SG code.
     :type sg_code: str
 
-    :param province: province name.
-    :type province: str
+    :param province_name: province_name name.
+    :type province_name: str
 
     :returns: URL to download sg diagram.
     :rtype: str
     """
-    if len(sg_code) != 21:
-        raise Exception('length sg code is not 21')
+    LOGGER.info('Constructing url for %s %s' % (sg_code, province_name))
+    if not is_valid_sg_code(sg_code):
+        raise InvalidSGCodeException
 
-    LOGGER.info('Constructing url for %s %s' % (sg_code, province))
-    if sg_code is None or province is None:
-        return (
-            'http://csg.dla.gov.za/esio/listdocument.jsp?regDivision=C0160013'
-            '&Noffice=2&Erf=1234&Portion=0&FarmName=')
+    if sg_code is None or province_name is None:
+        raise UrlException()
 
     base_url = 'http://csg.dla.gov.za/esio/listdocument.jsp?'
     reg_division = sg_code[:8]
 
-    record = get_office(reg_division, province)
+    try:
+        record = get_office(db_manager, reg_division, province_name)
+    except DatabaseException:
+        raise DatabaseException
+
     if record is None or bool(record) is None:
-        raise Exception('SG code and province is not found in database')
+        raise DatabaseException
+
     office, office_number, typology = record
 
     erf = sg_code[8:16]
@@ -172,21 +226,23 @@ def download_from_url(url, output_directory, filename=None, use_cache=True):
         LOGGER.info('File %s exists, not downloading' % file_path)
         return file_path
 
+    # Set Proxy in webpage
+    proxy = get_proxy()
+    network_manager = QNetworkAccessManager()
+    if not proxy is None:
+        network_manager.setProxy(proxy)
+
+    # Download Process
+    # noinspection PyTypeChecker
+    downloader = FileDownloader(network_manager, url, file_path)
     try:
-        fp = open(file_path, 'wb')
-        curl = pycurl.Curl()
-        curl.setopt(pycurl.URL, str(url))
-        curl.setopt(pycurl.CONNECTTIMEOUT, 60)
-        curl.setopt(pycurl.FOLLOWLOCATION, True)
-        curl.setopt(pycurl.NOBODY, False)
+        result = downloader.download()
+    except IOError as ex:
+        raise DownloadException(ex)
 
-        curl.setopt(pycurl.WRITEDATA, fp)
-        curl.perform()
-
-        curl.close()
-        fp.close()
-    except Exception, e:
-        raise Exception(e)
+    if result[0] is not True:
+        _, error_message = result
+        raise DownloadException(error_message)
 
     if os.path.exists(file_path):
         return file_path
@@ -205,26 +261,33 @@ def parse_download_page(download_page_url):
     """
     download_urls = []
     url_prefix = 'http://csg.dla.gov.za/esio/'
-    html = urllib.urlopen(download_page_url)
-    download_page_soup = BeautifulSoup(html)
-    urls = download_page_soup.find_all('a')
-    for url in urls:
-        full_url = url['href']
-        if full_url[0:2] == './':
-            full_url = full_url[2:]
-        full_url = url_prefix + full_url
-        download_urls.append(str(full_url))
-    return download_urls
+    try:
+        html = urllib.urlopen(download_page_url)
+        download_page_soup = BeautifulSoup(html)
+        urls = download_page_soup.find_all('a')
+        for url in urls:
+            full_url = url['href']
+            if full_url[0:2] == './':
+                full_url = full_url[2:]
+            full_url = url_prefix + full_url
+            download_urls.append(str(full_url))
+        return download_urls
+    except IOError as e:
+        raise ParseException(e)
 
 
-def download_sg_diagram(sg_code, province, output_directory, callback=None):
+def download_sg_diagram(
+        db_manager, sg_code, province_name, output_directory, callback=None):
     """Download sg diagram using sg_code and put it under output_directory.
+
+    :param db_manager: A database manager
+    :type db_manager: DatabaseManager
 
     :param sg_code: Surveyor General code.
     :type sg_code: str
 
-    :param province: Province name.
-    :type province: str
+    :param province_name: Province name.
+    :type province_name: str
 
     :param output_directory: Directory to put the diagram.
     :type output_directory: str
@@ -241,14 +304,23 @@ def download_sg_diagram(sg_code, province, output_directory, callback=None):
     if callback is None:
         callback = print_progress_callback
 
+    report = 'Downloading documents for %s in %s\n' % (sg_code, province_name)
+
     try:
-        download_page = construct_url(sg_code, province)
-    except Exception, e:
-        LOGGER.exception('Error constructing url')
-        raise
-    print 'Download page: %s' % download_page
-    # Parse link here
-    download_links = parse_download_page(download_page)
+        download_page = construct_url(db_manager, sg_code, province_name)
+    except (InvalidSGCodeException, DatabaseException, UrlException) as e:
+        report += (
+            'Failed: Downloading SG code %s for province %s because of %s\n' %
+            (sg_code, province_name, e.reason))
+        return report
+
+    try:
+        download_links = parse_download_page(download_page)
+    except ParseException as e:
+        report += (
+            'Failed: Downloading SG code %s for province %s because of %s\n' %
+            (sg_code, province_name, e.reason))
+        return report
 
     output_directory = os.path.join(output_directory, sg_code)
     if not os.path.exists(output_directory):
@@ -256,32 +328,31 @@ def download_sg_diagram(sg_code, province, output_directory, callback=None):
 
     count = 0
     total = len(download_links)
-    report = 'Downloading documents for %s in %s\n' % (sg_code, province)
+    if total == 0:
+        report += 'No documents found for %s in %s' % (sg_code, province_name)
 
     for download_link in download_links:
         count += 1
-        callback(count, total, 'Downloading file %s of %s' % (count, total))
-
+        message = ('[%s - %s] Downloading file %s of %s' % (
+            sg_code, province_name, count, total))
+        callback(count, total, message)
         try:
             file_path = download_from_url(download_link, output_directory)
-        except Exception as e:
-            message = 'Failed to download %s' % download_link
+            if file_path is not None:
+                report += 'Success: File %i of %i : %s saved to %s\n' % (
+                    count, total, download_link, file_path)
+            else:
+                report += 'Failed: File %i of %i : %s \n' % (
+                    count, total, download_link)
+        except DownloadException as e:
+            message = 'Failed to download %s for %s in %s because %s' % (
+                download_link, sg_code, province_name, e.reason)
             LOGGER.exception(message)
-            raise Exception(str(e) + message)
+            report += 'Failed: File %i of %i : %s \n' % (
+                count, total, download_link)
 
-        if file_path is not None:
-            status = 'Success'
-        else:
-            status = 'Error'
-
-        report += '%s: File %i of %i : %s saved to %s\n' % (
-            status,
-            count,
-            total,
-            download_link,
-            file_path
-        )
-    callback(count, total, 'Downloads completed')
+    message = 'Downloads completed for %s in %s' % (sg_code, province_name)
+    callback(count, total, message)
     return report
 
 
@@ -300,38 +371,44 @@ def get_spatial_index(data_provider):
     return index
 
 
-def province_for_point(centroid, provinces_layer):
+def province_for_point(db_manager, centroid):
     """Determine which province a point falls into.
 
     Typically you will get the centroid of a parcel or a click position
     on the map and then call this function with it.
 
+    :param db_manager: A database manager
+    :type db_manager: DatabaseManager
+
     :param centroid: Point at which lookup should occur.
     :type centroid: QgsPoint
 
-    :param provinces_layer: Name of the province or the string 'Null'
-        if not found.
-    :type provinces_layer: str
-
-    :returns:
-    :rtype:
+    :returns: Province Name
+    :rtype: str
     """
-    province_name = 'Null'
-    # noinspection PyUnresolvedReferences
-    provinces_data_provider = provinces_layer.dataProvider()
-    # noinspection PyUnresolvedReferences
-    province_index = provinces_layer.fieldNameIndex('province')
-    province_feature = QgsFeature()
-    provinces_data_features = provinces_data_provider.getFeatures()
-    while provinces_data_features.nextFeature(province_feature):
-        if province_feature.geometry().contains(centroid):
-            province_name = province_feature.attributes()[province_index]
-    return province_name
+    centroid_wkt = centroid.wellKnownText()
+
+    query = "SELECT province FROM provinces WHERE "
+    query += "Within(GeomFromText('%s'), Geometry)" % centroid_wkt
+
+    row = db_manager.fetch_one(query)
+
+    if row is None:
+        return 'Null'
+    else:
+        return row[0]
 
 
 def map_sg_codes_to_provinces(
-        site_layer, parcels_layer, sg_code_field, provinces_layer):
+        db_manager,
+        site_layer,
+        parcels_layer,
+        sg_code_field,
+        all_features=False):
     """Obtains sg codes from target layer.
+
+    :param db_manager: A database manager
+    :type db_manager: DatabaseManager
 
     :param site_layer: The target layer.
     :type site_layer: QgsVectorLayer
@@ -342,8 +419,9 @@ def map_sg_codes_to_provinces(
     :param sg_code_field: Name of the field that contains sg code
     :type sg_code_field: str
 
-    :param provinces_layer: Vector layer that contains provinces.
-    :type provinces_layer: QgsVectorLayer
+    :param all_features: If True select all features, else only the selected
+        ones.
+    :type all_features: bool
 
     :returns: Dict where key is sg code and value is province name
     :rtype: dict
@@ -358,10 +436,10 @@ def map_sg_codes_to_provinces(
 
     parcels_provider = parcels_layer.dataProvider()
 
-    # TODO: @ismailsunni this var is not used...
-    spatial_index = get_spatial_index(parcels_provider)
-
-    selected_features = site_layer.selectedFeatures()
+    if not all_features:
+        selected_features = site_layer.selectedFeatures()
+    else:
+        selected_features = site_layer.getFeatures()
     for selected_feature in selected_features:
         for feature in parcels_provider.getFeatures():
             geometry = selected_feature.geometry()
@@ -381,7 +459,7 @@ def map_sg_codes_to_provinces(
         geometry = feature.geometry()
         centroid = geometry.centroid().asPoint()
         # noinspection PyTypeChecker
-        province_name = province_for_point(centroid, provinces_layer)
+        province_name = province_for_point(db_manager, centroid)
         sg_code_provinces[sg_code] = province_name
 
     return sg_code_provinces
@@ -399,17 +477,21 @@ def print_progress_callback(current, maximum, message=None):
     :param message: Optional message to display in the progress bar
     :type message: str, QString
     """
-    print '%d of %d' + str(message) % (current, maximum)
+    print ('%d of %d' + str(message)) % (current, maximum)
 
 
 def download_sg_diagrams(
+        db_manager,
         site_layer,
         diagram_layer,
         sg_code_field,
         output_directory,
-        provinces_layer,
+        all_features=False,
         callback=None):
     """Downloads all SG Diagrams.
+
+    :param db_manager: A database manager
+    :type db_manager: DatabaseManager
 
     :param site_layer: The target layer.
     :type site_layer: QgsVectorLayer
@@ -423,8 +505,9 @@ def download_sg_diagrams(
     :param output_directory: Directory to put the diagram.
     :type output_directory: str
 
-    :param provinces_layer: province layer that will be used.
-    :type provinces_layer: QgsVectorLayer
+    :param all_features: If True select all features, else only the selected
+        ones.
+    :type all_features: bool
 
     :param callback: A function to all to indicate progress. The function
         should accept params 'current' (int) and 'maximum' (int). Defaults to
@@ -439,60 +522,26 @@ def download_sg_diagrams(
         callback = print_progress_callback
 
     sg_codes_and_provinces = map_sg_codes_to_provinces(
-        site_layer, diagram_layer, sg_code_field, provinces_layer)
+        db_manager, site_layer, diagram_layer, sg_code_field, all_features)
     maximum = len(sg_codes_and_provinces)
     current = 0
-    result = 'Fetching diagrams for %i SG Codes.\n'
-    result += '====================================\n'
+    report = ''
     for sg_code, province in sg_codes_and_provinces.iteritems():
         current += 1
-        message = '%s Downloading %s\n' % (datetime.now(), sg_code)
+        message = 'Downloading SG Code %s from %s' % (sg_code, province)
         callback(current, maximum, message)
-        result += message
-
         try:
-            result += download_sg_diagram(
+            report += download_sg_diagram(
+                db_manager,
                 sg_code,
                 province,
                 output_directory,
                 callback)
         except Exception, e:
-            result += 'Failed to download %s %s\n' % (sg_code, province), e
+            report += 'Failed to download %s %s %s\n' % (sg_code, province, e)
             LOGGER.exception(e)
 
-    log = file('sg_downloader.log', 'a')
-    log.write(result)
-    log.close()
-    return result
-
-
-def is_valid_sg_code(value):
-    """Check if a string is a valid SG Code.
-
-    :param value: The string to be tested.
-    :type value: str
-
-    :returns: True if the code is valid, otherwise False.
-    :rtype: bool
-    """
-
-    # Regex to check for the presence of an SG 21 digit code e.g.
-    # C01900000000026300000
-    # I did a quick scan of all the unique starting letters from
-    # Gavin's test dataset and came up with OBCFNT
-    prefixes = 'OBCFNT'
-    sg_code_regex = QRegExp('^[%s][0-9]{20}$' % prefixes, Qt.CaseInsensitive)
-    if len(value) != 21:
-        return False
-    if value[0] not in prefixes:
-        return False
-
-    # TODO Add Regex check we prepped for above
-    return True
-
-if __name__ == '__main__':
-    print PROVINCES_LAYER_PATH
-    print os.path.exists(PROVINCES_LAYER_PATH)
+    return report
 
 
 def point_to_rectangle(point):
@@ -530,9 +579,9 @@ def diagram_directory():
     :rtype: str
     """
     settings = QSettings()
+    default_path = os.path.join(os.path.expanduser('~'), 'sg-diagrams')
     output_path = settings.value(
-        'SGDownloader/output_path',
-        os.path.join(os.path.dirname(__file__), 'diagrams'))
+        'sg-diagram-downloader/output_directory', default_path)
     if not os.path.exists(output_path):
         os.mkdir(output_path)
     return output_path

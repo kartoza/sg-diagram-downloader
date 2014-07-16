@@ -206,16 +206,15 @@ class SGDiagramDownloader:
             add_to_toolbar=True,
             add_to_menu=True)
         # Special case setup for our map tool which uses custom QAction
-        icon = QIcon(':/plugins/SGDiagramDownloader/maptool.svg')
-        map_tool = SGAction(
-            icon,
-            self.iface,
-            self.province_layer,
-            'Interactive Downloader',
-            'Click on a parcel to download its SG Diagram.')
-        self.toolbar.addAction(map_tool)
-        self.iface.addPluginToVectorMenu(self.menu, map_tool)
-        self.actions.append(map_tool)
+        # icon = QIcon(':/plugins/SGDiagramDownloader/maptool.svg')
+        # map_tool = SGAction(
+        #     icon,
+        #     self.iface,
+        #     'Interactive Downloader',
+        #     'Click on a parcel to download its SG Diagram.')
+        # self.toolbar.addAction(map_tool)
+        # self.iface.addPluginToVectorMenu(self.menu, map_tool)
+        # self.actions.append(map_tool)
 
     def unload(self):
         """Removes the plugin menu item and icon from QGIS GUI."""
@@ -228,6 +227,5 @@ class SGDiagramDownloader:
     # @staticmethod
     def show_download_dialog(self):
         """Show the download dialog."""
-        dialog = DownloadDialog(
-            self.iface, provinces_layer=self.province_layer)
+        dialog = DownloadDialog(self.iface)
         dialog.exec_()  # modal

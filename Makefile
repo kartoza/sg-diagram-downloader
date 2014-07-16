@@ -36,14 +36,20 @@ PY_FILES = \
 	sg_downloader.py \
 	sg_utilities.py \
 	sg_action.py \
-	sg_map_tool.py
+	sg_map_tool.py \
+	database_manager.py \
+	file_downloader.py \
+	proxy.py \
+	sg_exceptions.py \
+	sg_log.py
 
 EXTRAS = icon.png metadata.txt LICENSE README.md
 
 STYLES = styles
 
 UI_FILES = \
-	sg_downloader_base.ui
+	sg_downloader_base.ui \
+	sg_log_base.ui
 
 COMPILED_RESOURCE_FILES = resources_rc.py
 
@@ -102,6 +108,7 @@ deploy: compile
 	#cp -vfr i18n/*.qm $(HOME)/$(QGISDIR)/python/plugins/$(PLUGINNAME)/i18n/
 	#cp -vfr $(HELP) $(HOME)/$(QGISDIR)/python/plugins/$(PLUGINNAME)/help
 	cp -vfr $(THIRD_PARTY) $(HOME)/$(QGISDIR)/python/plugins/$(PLUGINNAME)/
+	cp -vfr $(DATA_DIR) $(HOME)/$(QGISDIR)/python/plugins/$(PLUGINNAME)/
 
 fastdeploy: derase compile
 	@echo
