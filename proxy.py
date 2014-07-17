@@ -18,7 +18,11 @@ from PyQt4.QtNetwork import QNetworkProxy
 
 
 def get_proxy():
-    """Adaption by source of Plugin Installer - Version 1.0.10"""
+    """Adaption by source of Plugin Installer - Version 1.0.10
+
+    :returns: Get proxy that currently used.
+    :rtype: QNetworkProxy
+    """
     settings = QSettings()
     settings.beginGroup('proxy')
     enabled = settings.value('/proxyEnabled', False, type=bool)
