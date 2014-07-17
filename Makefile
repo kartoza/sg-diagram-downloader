@@ -5,8 +5,8 @@
 # diagrams.
 #							 -------------------
 #		begin				: 2014-05-30
-#		copyright			: (C) 2014 by Linfiniti Consulting CC.
-#		email				: tim@linfiniti.com
+#		copyright			: (C) 2014 by Kartoza (Pty) Ltd
+#		email				: tim@kartoza.com
 # ***************************************************************************/
 #
 #/***************************************************************************

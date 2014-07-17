@@ -7,7 +7,7 @@ Exceptions for Surveyor General Diagram
                              -------------------
         begin                : 2014-05-30
         copyright            : (C) 2014 by Options
-        email                : tim@linfiniti.com
+        email                : tim@kartoza.com
  ***************************************************************************/
 
 /***************************************************************************
@@ -20,7 +20,7 @@ Exceptions for Surveyor General Diagram
  ***************************************************************************/
 """
 
-__author__ = 'ismail@linfiniti.com'
+__author__ = 'ismail@kartoza.com'
 __revision__ = '$Format:%H$'
 __date__ = '23/06/2014'
 __copyright__ = ''

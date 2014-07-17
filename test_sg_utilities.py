@@ -7,7 +7,7 @@
      (at your option) any later version.
 
 """
-__author__ = 'ismail@linfiniti.com'
+__author__ = 'ismail@kartoza.com'
 __date__ = '30/05/2014'
 __copyright__ = ''
 
