@@ -16,6 +16,7 @@ import unittest
 import os
 
 from qgis.core import QgsPoint, QgsRectangle
+from PyQt4 import QtCore
 
 from test.utilities_for_testing import (
     get_temp_shapefile_layer, TEMP_DIR, get_random_string)
@@ -134,6 +135,7 @@ class TestUtilities(unittest.TestCase):
 
     def test_is_valid_sg_code(self):
         """Test for is_valid_sg_code."""
+
         self.assertTrue(is_valid_sg_code('C01900000000026300000'))
         self.assertTrue(is_valid_sg_code('B01900000000026300000'))
         self.assertFalse(is_valid_sg_code('Foo'))
@@ -142,6 +144,10 @@ class TestUtilities(unittest.TestCase):
         # Too short
         self.assertFalse(is_valid_sg_code('B01900000000026300'))
         self.assertFalse(is_valid_sg_code('C0190000000002630000X'))
+        # Null
+        # noinspection PyUnresolvedReferences
+        null_variant = QtCore.QPyNullVariant(str)
+        self.assertFalse(is_valid_sg_code(null_variant))
 
     def test_point_to_rectangle(self):
         """Test for point to rectangle."""
