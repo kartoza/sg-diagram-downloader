@@ -5,8 +5,8 @@
 # diagrams.
 #							 -------------------
 #		begin				: 2014-05-30
-#		copyright			: (C) 2014 by Linfiniti Consulting CC.
-#		email				: tim@linfiniti.com
+#		copyright			: (C) 2014 by Kartoza (Pty) Ltd
+#		email				: tim@kartoza.com
 # ***************************************************************************/
 #
 #/***************************************************************************
@@ -64,7 +64,7 @@ THIRD_PARTY = third_party
 
 DATA_DIR = data
 
-PLUGIN_UPLOAD = $(c)/plugin_upload.py
+PLUGIN_UPLOAD = ./plugin_upload.py
 
 QGISDIR=.qgis2
 

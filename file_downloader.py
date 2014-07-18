@@ -71,7 +71,7 @@ class FileDownloader(object):
         # Request the url
         request = QNetworkRequest(QUrl(self.url))
         self.reply = self.manager.get(request)
-        self.reply.readyRead.connect(self.get_buffer)
+        self.reply.readyRead.connect(self.update_buffer_container)
         self.reply.finished.connect(self.write_data)
 
         if self.progress_dialog:
@@ -115,8 +115,8 @@ class FileDownloader(object):
         else:
             return result, str(self.reply.errorString())
 
-    def get_buffer(self):
-        """Get buffer from self.reply and store it to our buffer container."""
+    def update_buffer_container(self):
+        """Update buffer container by using buffer obtained from self.reply"""
         buffer_size = self.reply.size()
         data = self.reply.read(buffer_size)
         self.downloaded_file_buffer.append(data)

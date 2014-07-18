@@ -7,8 +7,8 @@ A tool for QGIS that will download SG (South African Surveyor General)
 diagrams.
                              -------------------
         begin                : 2014-05-07
-        copyright            : (C) 2014 by Linfiniti Consulting CC.
-        email                : tim@linfiniti.com
+        copyright            : (C) 2014 by Kartoza (Pty) Ltd
+        email                : tim@kartoza.com
  ***************************************************************************/
 
 /***************************************************************************

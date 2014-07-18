@@ -8,7 +8,7 @@ diagrams.
                               -------------------
         begin                : 2014-05-30
         copyright            : (C) 2014 by Linfiniti Consulting CC.
-        email                : tim@linfiniti.com
+        email                : tim@kartoza.com
  ***************************************************************************/
 
 /***************************************************************************
@@ -21,7 +21,7 @@ diagrams.
  ***************************************************************************/
 """
 
-__author__ = 'ismail@linfiniti.com'
+__author__ = 'ismail@kartoza.com'
 __revision__ = '$Format:%H$'
 __date__ = '30/05/2014'
 __copyright__ = ''

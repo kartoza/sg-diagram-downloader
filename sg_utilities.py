@@ -7,7 +7,7 @@ Utilities for Surveyor General Diagram
                              -------------------
         begin                : 2014-05-30
         copyright            : (C) 2014 by Options
-        email                : tim@linfiniti.com
+        email                : tim@kartoza.com
  ***************************************************************************/
 
 /***************************************************************************
@@ -19,13 +19,12 @@ Utilities for Surveyor General Diagram
  *                                                                         *
  ***************************************************************************/
 """
-__author__ = 'ismail@linfiniti.com'
+__author__ = 'ismail@kartoza.com'
 __revision__ = '$Format:%H$'
 __date__ = '30/05/2014'
 __copyright__ = ''
 
 import os
-from datetime import datetime
 
 from qgis.core import (
     QgsVectorLayer,
@@ -120,7 +119,9 @@ def is_valid_sg_code(value):
     :returns: True if the code is valid, otherwise False.
     :rtype: bool
     """
-
+    # False if value is not a string or value is not True
+    if type(value) != str or not value:
+        return False
     # Regex to check for the presence of an SG 21 digit code e.g.
     # C01900000000026300000
     # I did a quick scan of all the unique starting letters from
@@ -551,7 +552,7 @@ def point_to_rectangle(point):
     QgsFeatureRequest rectangle filter.
 
     :param point: Point that will be buffered.
-    :type point: QgsPoint
+    :type point: qgis.core.QgsPoint
 
     :returns: A rectangle made by creating a very tiny buffer around the
         point.
