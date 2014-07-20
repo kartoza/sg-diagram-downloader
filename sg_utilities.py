@@ -25,6 +25,7 @@ __date__ = '30/05/2014'
 __copyright__ = ''
 
 import os
+import re
 
 from qgis.core import (
     QgsVectorLayer,
@@ -114,11 +115,15 @@ def is_valid_sg_code(value):
     """Check if a string is a valid SG Code.
 
     :param value: The string to be tested.
-    :type value: str
+    :type value: str, unicode
 
     :returns: True if the code is valid, otherwise False.
     :rtype: bool
     """
+    # Handling unicode input. Found on Windows.
+    if type(value) == unicode:
+        value = str(value)
+
     # False if value is not a string or value is not True
     if type(value) != str or not value:
         return False
@@ -127,14 +132,13 @@ def is_valid_sg_code(value):
     # I did a quick scan of all the unique starting letters from
     # Gavin's test dataset and came up with OBCFNT
     prefixes = 'OBCFNT'
-    sg_code_regex = QRegExp('^[%s][0-9]{20}$' % prefixes, Qt.CaseInsensitive)
-    validator = QRegExpValidator(sg_code_regex)
+    sg_code_regex_string = '^[%s][0-9]{20}$' % prefixes
+    sg_code_regex = re.compile(sg_code_regex_string)
     if len(value) != 21:
         return False
     if value[0] not in prefixes:
         return False
-    acceptable, _, _ = validator.validate(value, 21)
-    if acceptable != QValidator.Acceptable:
+    if not sg_code_regex.match(value):
         return False
 
     return True
