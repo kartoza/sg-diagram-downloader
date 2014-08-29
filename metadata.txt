@@ -10,7 +10,7 @@
 name=SG Diagram Downloader
 qgisMinimumVersion=2.0
 description=A tool for QGIS that will download SG (South African Surveyor General) diagrams.
-version=1.0.4
+version=1.0.5
 author=Kartoza (Pty) Ltd
 email=tim@kartoza.com
 
