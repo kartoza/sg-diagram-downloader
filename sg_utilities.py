@@ -132,7 +132,7 @@ def is_valid_sg_code(value):
     # I did a quick scan of all the unique starting letters from
     # Gavin's test dataset and came up with OBCFNT
     prefixes = 'OBCFNT'
-    sg_code_regex_string = '^[%s][0-9]{20}$' % prefixes
+    sg_code_regex_string = '^[%s][A-Z0-9]{4}[0-9]{16}$' % prefixes
     sg_code_regex = re.compile(sg_code_regex_string)
     if len(value) != 21:
         return False
@@ -329,7 +329,7 @@ def download_sg_diagram(
 
     output_directory = os.path.join(output_directory, sg_code)
     if not os.path.exists(output_directory):
-        os.mkdir(output_directory)
+        os.makedirs(output_directory)
 
     count = 0
     total = len(download_links)

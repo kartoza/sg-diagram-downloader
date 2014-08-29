@@ -139,6 +139,9 @@ class TestUtilities(unittest.TestCase):
         self.assertTrue(is_valid_sg_code('C01900000000026300000'))
         self.assertTrue(is_valid_sg_code('B01900000000026300000'))
 
+        # issue #20
+        self.assertTrue(is_valid_sg_code('T0JP00000000010800008'))
+
         self.assertFalse(is_valid_sg_code('Foo'))
         # Too long
         self.assertFalse(is_valid_sg_code('B019000000000263000000'))
@@ -189,6 +192,17 @@ class TestUtilities(unittest.TestCase):
                 output_directory)
             self.assertEqual(4, report.count('Success'))
             i += 1
+        # issue #20
+        sg_code = 'T0JP00000000010800008'
+        province_name = 'Gauteng'
+        output_directory = TEMP_DIR
+        report = download_sg_diagram(
+            self.database_manager,
+            sg_code,
+            province_name,
+            output_directory)
+        message = 'Expected 1 success got %d success' % report.count('Success')
+        self.assertEqual(1, report.count('Success'), message)
 
     def test_construct_url(self):
         """Test constructing url."""
