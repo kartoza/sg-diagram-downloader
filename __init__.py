@@ -26,14 +26,14 @@ diagrams.
 import qgis  # pylint: disable=W0611
 import os
 import sys
-third_party_dir = os.path.abspath(
+THIRD_PARTY_DIR = os.path.abspath(
     os.path.join(os.path.dirname(__file__), 'third_party'))
-if third_party_dir not in sys.path:
-    sys.path.append(third_party_dir)
+if THIRD_PARTY_DIR not in sys.path:
+    sys.path.append(THIRD_PARTY_DIR)
 
 import custom_logging  # pylint: disable=relative-import
 
-log_file_path = '/tmp/sg-download/log.log'
+LOG_FILE_PATH = '/tmp/sg-download/log.log'
 
 SENTRY_URL = (
     'http://9a83c384bc0f476a9ba80958704383a8:'
