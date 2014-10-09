@@ -19,7 +19,6 @@ Utilities for Surveyor General Diagram
  *                                                                         *
  ***************************************************************************/
 """
-from qgis.core.__init__ import QgsCoordinateTransform
 
 __author__ = 'ismail@kartoza.com'
 __revision__ = '$Format:%H$'
@@ -30,6 +29,7 @@ import os
 import re
 
 from qgis.core import (
+    QgsCoordinateTransform,
     QgsVectorLayer,
     QgsFeature,
     QgsFeatureRequest,
