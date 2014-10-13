@@ -19,6 +19,7 @@ Utilities for Surveyor General Diagram
  *                                                                         *
  ***************************************************************************/
 """
+
 __author__ = 'ismail@kartoza.com'
 __revision__ = '$Format:%H$'
 __date__ = '30/05/2014'
@@ -28,6 +29,7 @@ import os
 import re
 
 from qgis.core import (
+    QgsCoordinateTransform,
     QgsVectorLayer,
     QgsFeature,
     QgsFeatureRequest,
@@ -454,6 +456,9 @@ def map_sg_codes_to_provinces(
         raise Exception(message)
 
     parcels_provider = parcels_layer.dataProvider()
+    site_crs = site_layer.crs()
+    parcel_crs = parcels_layer.crs()
+    transform = QgsCoordinateTransform(site_crs, parcel_crs)
 
     if not all_features:
         selected_features = site_layer.selectedFeatures()
@@ -463,6 +468,7 @@ def map_sg_codes_to_provinces(
         for feature in parcels_provider.getFeatures():
             geometry = selected_feature.geometry()
             feature_geometry = feature.geometry()
+            transform.transformPolygon(feature_geometry)
 
             intersect = geometry.intersects(feature_geometry)
             if intersect:
