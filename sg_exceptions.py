@@ -49,3 +49,8 @@ class InvalidSGCodeException(Exception):
 class ParseException(Exception):
     """Raised if error in parsing html page."""
     reason = 'Failed to parse html page.'
+
+
+class NotInSouthAfricaException(Exception):
+    """Raised if a geometry is not in South Africa."""
+    reason = 'The geometry is not in South Africa.'

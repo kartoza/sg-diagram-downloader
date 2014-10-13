@@ -35,8 +35,7 @@ from qgis.core import (
     QgsRectangle)
 
 from PyQt4.QtNetwork import QNetworkAccessManager
-from PyQt4.QtCore import QRegExp, Qt, QSettings
-from PyQt4.QtGui import QRegExpValidator, QValidator
+from PyQt4.QtCore import QSettings
 
 import urllib
 import sys
@@ -47,7 +46,8 @@ from sg_exceptions import (
     DatabaseException,
     UrlException,
     InvalidSGCodeException,
-    ParseException
+    ParseException,
+    NotInSouthAfricaException
 )
 from proxy import get_proxy
 from database_manager import DatabaseManager
@@ -65,6 +65,15 @@ from custom_logging import LOGGER
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 SG_DIAGRAM_SQLITE3 = os.path.join(DATA_DIR, 'sg_diagrams.sqlite')
+PROVINCE_NAMES = [
+    'Eastern Cape',
+    'KwaZulu-Natal',
+    'Limpopo',
+    'Mpumalanga',
+    'Western Cape',
+    'Gauteng',
+    'Free State'
+]
 
 
 def write_log(log, log_path):
@@ -165,6 +174,9 @@ def construct_url(db_manager, sg_code=None, province_name=None):
 
     if sg_code is None or province_name is None:
         raise UrlException()
+
+    if province_name not in PROVINCE_NAMES:
+        raise NotInSouthAfricaException
 
     base_url = 'http://csg.dla.gov.za/esio/listdocument.jsp?'
     reg_division = sg_code[:8]
@@ -313,12 +325,14 @@ def download_sg_diagram(
 
     try:
         download_page = construct_url(db_manager, sg_code, province_name)
-    except (InvalidSGCodeException, DatabaseException, UrlException) as e:
+    except (InvalidSGCodeException,
+            DatabaseException,
+            UrlException,
+            NotInSouthAfricaException) as e:
         report += (
             'Failed: Downloading SG code %s for province %s because of %s\n' %
             (sg_code, province_name, e.reason))
         return report
-
     try:
         download_links = parse_download_page(download_page)
     except ParseException as e:
@@ -399,7 +413,7 @@ def province_for_point(db_manager, centroid):
     row = db_manager.fetch_one(query)
 
     if row is None:
-        return 'Null'
+        return None
     else:
         return row[0]
 
