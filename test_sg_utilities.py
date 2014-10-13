@@ -57,6 +57,7 @@ purchaseplan_layer = os.path.join(DATA_TEST_DIR, 'purchaseplan.shp')
 dummy_erf_layer = os.path.join(DATA_TEST_DIR, 'dummy_erf.shp')
 dummy_purchaseplan_layer = os.path.join(
     DATA_TEST_DIR, 'dummy_purchaseplan.shp')
+dummy_farm_layer = os.path.join(DATA_TEST_DIR, 'dummy_farm.shp')
 
 
 class TestUtilities(unittest.TestCase):
@@ -81,6 +82,7 @@ class TestUtilities(unittest.TestCase):
         self.assertTrue(os.path.exists(dummy_erf_layer), dummy_erf_layer)
         self.assertTrue(os.path.exists(
             dummy_purchaseplan_layer), dummy_purchaseplan_layer)
+        self.assertTrue(os.path.exists(dummy_farm_layer), dummy_farm_layer)
 
     def test_download_from_url(self):
         """Test for download from url."""
@@ -96,19 +98,19 @@ class TestUtilities(unittest.TestCase):
 
     def test_map_sg_codes_to_provinces(self):
         """Test for map_sg_codes_to_provinces."""
-        # site_layer = get_temp_shapefile_layer(
-        #     purchaseplan_layer, 'purchaseplan')
-        # diagram_layer = get_temp_shapefile_layer(
-        #     parent_farm_layer, 'parent farm')
-        # sg_code_field = 'id'
-        #
-        # site_layer.setSelectedFeatures([7])
-        # sg_codes = map_sg_codes_to_provinces(
-        #     self.database_manager, site_layer, diagram_layer, sg_code_field)
-        # message = (
-        #     'The number of sg codes extracted should be 33. I got %s' % len(
-        #         sg_codes))
-        # self.assertEqual(31, len(sg_codes), message)
+        site_layer = get_temp_shapefile_layer(
+            purchaseplan_layer, 'purchaseplan')
+        diagram_layer = get_temp_shapefile_layer(
+            parent_farm_layer, 'parent farm')
+        sg_code_field = 'id'
+
+        site_layer.setSelectedFeatures([7])
+        sg_codes = map_sg_codes_to_provinces(
+            self.database_manager, site_layer, diagram_layer, sg_code_field)
+        message = (
+            'The number of sg codes extracted should be 33. I got %s' % len(
+                sg_codes))
+        self.assertEqual(31, len(sg_codes), message)
 
         site_layer = get_temp_shapefile_layer(
             dummy_purchaseplan_layer, 'purchaseplan')
@@ -123,6 +125,20 @@ class TestUtilities(unittest.TestCase):
         message = 'Should be %s but got %s' % (expected_result, sg_codes)
         self.assertEqual(expected_result, sg_codes, message)
 
+        # site and parcel layer do not use 4326 crs
+        site_layer = get_temp_shapefile_layer(
+            dummy_purchaseplan_layer, 'purchaseplan')
+        diagram_layer = get_temp_shapefile_layer(
+            dummy_farm_layer, 'parent farm')
+        sg_code_field = 'id'
+
+        # site and parcel layer have different crs
+        sg_codes = map_sg_codes_to_provinces(
+            self.database_manager, site_layer, diagram_layer, sg_code_field,
+            all_features=True)
+        expected_result = {u'C01300280000000600000': 'Free State'}
+        message = 'Should be %s but got %s' % (expected_result, sg_codes)
+        self.assertEqual(expected_result, sg_codes, message)
 
     def test_get_office(self):
         """Test for get_office function."""

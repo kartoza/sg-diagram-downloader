@@ -474,13 +474,7 @@ def map_sg_codes_to_provinces(
             geometry = selected_feature.geometry()
             feature_geometry = feature.geometry()
 
-            print geometry.exportToWkt()
-            print feature_geometry.exportToWkt()
-
-            feature_geometry.transform(site_parcel_transformer)
-
-            print geometry.exportToWkt()
-            print feature_geometry.exportToWkt()
+            geometry.transform(site_parcel_transformer)
 
             intersect = geometry.intersects(feature_geometry)
             if intersect:
