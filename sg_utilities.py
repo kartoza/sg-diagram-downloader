@@ -19,6 +19,7 @@ Utilities for Surveyor General Diagram
  *                                                                         *
  ***************************************************************************/
 """
+
 __author__ = 'ismail@kartoza.com'
 __revision__ = '$Format:%H$'
 __date__ = '30/05/2014'
@@ -28,15 +29,16 @@ import os
 import re
 
 from qgis.core import (
+    QgsCoordinateTransform,
     QgsVectorLayer,
     QgsFeature,
     QgsFeatureRequest,
     QgsSpatialIndex,
-    QgsRectangle)
+    QgsRectangle,
+    QgsCoordinateReferenceSystem)
 
 from PyQt4.QtNetwork import QNetworkAccessManager
-from PyQt4.QtCore import QRegExp, Qt, QSettings
-from PyQt4.QtGui import QRegExpValidator, QValidator
+from PyQt4.QtCore import QSettings
 
 import urllib
 import sys
@@ -47,7 +49,8 @@ from sg_exceptions import (
     DatabaseException,
     UrlException,
     InvalidSGCodeException,
-    ParseException
+    ParseException,
+    NotInSouthAfricaException
 )
 from proxy import get_proxy
 from database_manager import DatabaseManager
@@ -65,6 +68,15 @@ from custom_logging import LOGGER
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 SG_DIAGRAM_SQLITE3 = os.path.join(DATA_DIR, 'sg_diagrams.sqlite')
+PROVINCE_NAMES = [
+    'Eastern Cape',
+    'KwaZulu-Natal',
+    'Limpopo',
+    'Mpumalanga',
+    'Western Cape',
+    'Gauteng',
+    'Free State'
+]
 
 
 def write_log(log, log_path):
@@ -165,6 +177,9 @@ def construct_url(db_manager, sg_code=None, province_name=None):
 
     if sg_code is None or province_name is None:
         raise UrlException()
+
+    if province_name not in PROVINCE_NAMES:
+        raise NotInSouthAfricaException
 
     base_url = 'http://csg.dla.gov.za/esio/listdocument.jsp?'
     reg_division = sg_code[:8]
@@ -313,12 +328,14 @@ def download_sg_diagram(
 
     try:
         download_page = construct_url(db_manager, sg_code, province_name)
-    except (InvalidSGCodeException, DatabaseException, UrlException) as e:
+    except (InvalidSGCodeException,
+            DatabaseException,
+            UrlException,
+            NotInSouthAfricaException) as e:
         report += (
             'Failed: Downloading SG code %s for province %s because of %s\n' %
             (sg_code, province_name, e.reason))
         return report
-
     try:
         download_links = parse_download_page(download_page)
     except ParseException as e:
@@ -399,7 +416,7 @@ def province_for_point(db_manager, centroid):
     row = db_manager.fetch_one(query)
 
     if row is None:
-        return 'Null'
+        return None
     else:
         return row[0]
 
@@ -440,6 +457,13 @@ def map_sg_codes_to_provinces(
         raise Exception(message)
 
     parcels_provider = parcels_layer.dataProvider()
+    site_crs = site_layer.crs()
+    parcel_crs = parcels_layer.crs()
+    province_crs = QgsCoordinateReferenceSystem(4326)
+
+    site_parcel_transformer = QgsCoordinateTransform(site_crs, parcel_crs)
+
+    province_transformer = QgsCoordinateTransform(parcel_crs, province_crs)
 
     if not all_features:
         selected_features = site_layer.selectedFeatures()
@@ -449,6 +473,8 @@ def map_sg_codes_to_provinces(
         for feature in parcels_provider.getFeatures():
             geometry = selected_feature.geometry()
             feature_geometry = feature.geometry()
+
+            geometry.transform(site_parcel_transformer)
 
             intersect = geometry.intersects(feature_geometry)
             if intersect:
@@ -463,6 +489,7 @@ def map_sg_codes_to_provinces(
         sg_code = feature.attributes()[sg_code_index]
         geometry = feature.geometry()
         centroid = geometry.centroid().asPoint()
+        centroid = province_transformer.transform(centroid)
         # noinspection PyTypeChecker
         province_name = province_for_point(db_manager, centroid)
         sg_code_provinces[sg_code] = province_name
