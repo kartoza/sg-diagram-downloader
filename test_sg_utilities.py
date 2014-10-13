@@ -121,7 +121,7 @@ class TestUtilities(unittest.TestCase):
         sg_codes = map_sg_codes_to_provinces(
             self.database_manager, site_layer, diagram_layer, sg_code_field,
             all_features=True)
-        expected_result = {u'C01300280000000600000': 'Free State'}
+        expected_result = {u'C01300280000000600000': 'Western Cape'}
         message = 'Should be %s but got %s' % (expected_result, sg_codes)
         self.assertEqual(expected_result, sg_codes, message)
 
@@ -136,7 +136,7 @@ class TestUtilities(unittest.TestCase):
         sg_codes = map_sg_codes_to_provinces(
             self.database_manager, site_layer, diagram_layer, sg_code_field,
             all_features=True)
-        expected_result = {u'C01300280000000600000': 'Free State'}
+        expected_result = {u'C01300280000000600000': 'Western Cape'}
         message = 'Should be %s but got %s' % (expected_result, sg_codes)
         self.assertEqual(expected_result, sg_codes, message)
 
