@@ -96,19 +96,19 @@ class TestUtilities(unittest.TestCase):
 
     def test_map_sg_codes_to_provinces(self):
         """Test for map_sg_codes_to_provinces."""
-        site_layer = get_temp_shapefile_layer(
-            purchaseplan_layer, 'purchaseplan')
-        diagram_layer = get_temp_shapefile_layer(
-            parent_farm_layer, 'parent farm')
-        sg_code_field = 'id'
-
-        site_layer.setSelectedFeatures([7])
-        sg_codes = map_sg_codes_to_provinces(
-            self.database_manager, site_layer, diagram_layer, sg_code_field)
-        message = (
-            'The number of sg codes extracted should be 33. I got %s' % len(
-                sg_codes))
-        self.assertEqual(31, len(sg_codes), message)
+        # site_layer = get_temp_shapefile_layer(
+        #     purchaseplan_layer, 'purchaseplan')
+        # diagram_layer = get_temp_shapefile_layer(
+        #     parent_farm_layer, 'parent farm')
+        # sg_code_field = 'id'
+        #
+        # site_layer.setSelectedFeatures([7])
+        # sg_codes = map_sg_codes_to_provinces(
+        #     self.database_manager, site_layer, diagram_layer, sg_code_field)
+        # message = (
+        #     'The number of sg codes extracted should be 33. I got %s' % len(
+        #         sg_codes))
+        # self.assertEqual(31, len(sg_codes), message)
 
         site_layer = get_temp_shapefile_layer(
             dummy_purchaseplan_layer, 'purchaseplan')
@@ -119,7 +119,7 @@ class TestUtilities(unittest.TestCase):
         sg_codes = map_sg_codes_to_provinces(
             self.database_manager, site_layer, diagram_layer, sg_code_field,
             all_features=True)
-        expected_result = {'C01300280000000600000': 'Free State'}
+        expected_result = {u'C01300280000000600000': 'Free State'}
         message = 'Should be %s but got %s' % (expected_result, sg_codes)
         self.assertEqual(expected_result, sg_codes, message)
 

@@ -34,7 +34,8 @@ from qgis.core import (
     QgsFeature,
     QgsFeatureRequest,
     QgsSpatialIndex,
-    QgsRectangle)
+    QgsRectangle,
+    QgsCoordinateReferenceSystem)
 
 from PyQt4.QtNetwork import QNetworkAccessManager
 from PyQt4.QtCore import QSettings
@@ -458,7 +459,11 @@ def map_sg_codes_to_provinces(
     parcels_provider = parcels_layer.dataProvider()
     site_crs = site_layer.crs()
     parcel_crs = parcels_layer.crs()
-    transform = QgsCoordinateTransform(site_crs, parcel_crs)
+    province_crs = QgsCoordinateReferenceSystem(4326)
+
+    site_parcel_transformer = QgsCoordinateTransform(site_crs, parcel_crs)
+
+    province_transformer = QgsCoordinateTransform(parcel_crs, province_crs)
 
     if not all_features:
         selected_features = site_layer.selectedFeatures()
@@ -468,7 +473,14 @@ def map_sg_codes_to_provinces(
         for feature in parcels_provider.getFeatures():
             geometry = selected_feature.geometry()
             feature_geometry = feature.geometry()
-            transform.transformPolygon(feature_geometry)
+
+            print geometry.exportToWkt()
+            print feature_geometry.exportToWkt()
+
+            feature_geometry.transform(site_parcel_transformer)
+
+            print geometry.exportToWkt()
+            print feature_geometry.exportToWkt()
 
             intersect = geometry.intersects(feature_geometry)
             if intersect:
@@ -483,6 +495,7 @@ def map_sg_codes_to_provinces(
         sg_code = feature.attributes()[sg_code_index]
         geometry = feature.geometry()
         centroid = geometry.centroid().asPoint()
+        centroid = province_transformer.transform(centroid)
         # noinspection PyTypeChecker
         province_name = province_for_point(db_manager, centroid)
         sg_code_provinces[sg_code] = province_name
