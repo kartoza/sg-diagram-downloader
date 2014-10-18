@@ -1,0 +1,21 @@
+language: python
+
+python:
+  - "2.7"
+
+branches:
+  only:
+    - develop
+
+-before_install:
+  - sudo apt-get -qq -y update
+
+install:
+  - sudo apt-get install -y git qgis python-qgis pylint pep8 python-nose python-coverage pyflakes python-nosexcover
+
+script:
+  - make test
+
+notifications:
+  email:
+    - ismail@kartoza.com
