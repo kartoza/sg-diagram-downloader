@@ -14,7 +14,7 @@ install:
   - sudo apt-get install -y git qgis python-qgis pylint pep8 python-nose python-coverage pyflakes python-nosexcover
 
 script:
-  - make test_travis
+  - xvfb-run --server-args="-screen 0, 1024x768x24" nosetests -v --with-id --with-xcoverage --with-xunit --verbose --cover-package=.
 
 before_script:
   - echo "Build starting on " `date`
