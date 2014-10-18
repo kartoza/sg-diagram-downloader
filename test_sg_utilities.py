@@ -93,7 +93,6 @@ class TestUtilities(unittest.TestCase):
             'furl=/images/9a/1018ML01.TIF&office=SGCTN')
         output_directory = TEMP_DIR
 
-
         filename = get_random_string() + '.TIF'
         download_from_url(url, output_directory, filename)
         file_path = os.path.join(output_directory, filename)
