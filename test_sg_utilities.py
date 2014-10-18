@@ -68,6 +68,8 @@ class TestUtilities(unittest.TestCase):
     def setUpClass(cls):
         """Setup Test Class."""
         cls.database_manager = DatabaseManager(sg_diagrams_database)
+        if not os.path.exists(TEMP_DIR):
+            os.makedirs(TEMP_DIR)
 
     @classmethod
     def tearDownClass(cls):
@@ -90,6 +92,8 @@ class TestUtilities(unittest.TestCase):
             'http://csg.dla.gov.za/esio/viewTIFF?'
             'furl=/images/9a/1018ML01.TIF&office=SGCTN')
         output_directory = TEMP_DIR
+
+
         filename = get_random_string() + '.TIF'
         download_from_url(url, output_directory, filename)
         file_path = os.path.join(output_directory, filename)
