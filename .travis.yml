@@ -14,7 +14,7 @@ install:
   - sudo apt-get install -y git qgis python-qgis pylint pep8 python-nose python-coverage pyflakes python-nosexcover
 
 script:
-  - make test
+  - make test_travis
 
 notifications:
   email:
