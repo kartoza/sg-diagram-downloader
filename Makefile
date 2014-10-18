@@ -88,7 +88,7 @@ test_code: compile # transcompile
 		export QGIS_DEBUG=0; \
 		export QGIS_LOG_FILE=/dev/null; \
 		nosetests -v --exclude pydev --with-id --with-coverage \
-		--cover-package= . \
+		--cover-package=. \
 		3>&1 1>&2 2>&3 3>&- || true
 
 #deploy: compile doc transcompile
