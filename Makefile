@@ -75,19 +75,9 @@ compile: $(COMPILED_RESOURCE_FILES)
 %_rc.py : %.qrc
 	pyrcc4 -o $*_rc.py  $<
 
-test: test_code compile pep8 pylint
+test: test_code pep8 pylint
 
-test_travis: test_code_travis pep8 # pylint
-
-test_code_travis:
-	@echo
-	@echo "----------------------------"
-	@echo "Travis Regression Test Suite"
-	@echo "----------------------------"
-    xvfb-run --server-args="-screen 0, 1024x768x24" nosetests -v --with-id \
-        --with-xcoverage --with-xunit --verbose --cover-package=.
-
-test_code: # compile # transcompile
+test_code: compile # transcompile
 	@echo
 	@echo "----------------------"
 	@echo "Regression Test Suite"
@@ -245,4 +235,3 @@ pep8:
 	@echo "PEP8 issues"
 	@echo "-----------"
 	@pep8 --repeat --ignore=E203,E121,E122,E123,E124,E125,E126,E127,E128 --exclude conf.py,pydev,resources_rc.py,third_party . || true
-
