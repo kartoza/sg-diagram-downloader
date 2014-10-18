@@ -24,6 +24,9 @@ before_script:
   - ls ${QGIS_PREFIX_PATH}/share/qgis/python/plugins/
   - export LD_LIBRARY_PATH=${QGIS_PREFIX_PATH}/lib
 
+virtualenv:
+  system_site_packages: true
+
 notifications:
   email:
     - ismail@kartoza.com
