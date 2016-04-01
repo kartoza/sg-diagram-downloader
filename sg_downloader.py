@@ -267,8 +267,8 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
     def show_output_directory_information_message(self):
         """Helper to show information message about output directory."""
         message = (
-            'Your output directory is either empty or not exist. Please '
-            'fill the correct one.')
+            'Your output directory is either empty or does not exist.'
+            'Please fill in the correct one.')
         # noinspection PyCallByClass
         QtGui.QMessageBox.information(
             self, self.tr('Surveyor General Diagram Downloader'), message)

@@ -11,9 +11,9 @@ name=SG Diagram Downloader
 qgisMinimumVersion=2.0
 description=A tool for QGIS that will download SG (South African Surveyor General) diagrams.
 version=1.0.7
-about=SG diagrams are free to download from the official website but it is an onerous task. This plugin automates download jobs, small or large. All you need is a polygon layer with an SG 21 digit code field. 
+about=SG diagrams are free to download from the official website but it is an onerous task. This plugin automates download jobs, small or large. All you need is a polygon layer with an SG 21 digit code field. Designed by Gavin Fleming. Developed by Ismail Sunni. 
 author=Kartoza (Pty) Ltd
-email=tim@kartoza.com
+email=info@kartoza.com
 
 # End of mandatory metadata
 

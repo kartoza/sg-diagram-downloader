@@ -28,7 +28,7 @@ __copyright__ = ''
 
 class DownloadException(Exception):
     """Raised download is failed."""
-    reason = 'Failed to download file'
+    reason = 'Failed to download file.'
 
 
 class DatabaseException(Exception):

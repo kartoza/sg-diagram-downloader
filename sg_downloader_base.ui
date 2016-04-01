@@ -41,7 +41,7 @@
           <string notr="true">font-weight: bold;</string>
          </property>
          <property name="text">
-          <string>South African Surveyor General DIagram Downloader</string>
+          <string>South African Surveyor General Diagram Downloader</string>
          </property>
          <property name="alignment">
           <set>Qt::AlignCenter</set>
@@ -51,7 +51,7 @@
        <item>
         <widget class="QLabel" name="label">
          <property name="text">
-          <string>This plugin will use your current selected layer for selecting 'parcel' polygon in Parcel layer. If you want to download all diagram that fall into you current layer, please select all features or uncheck this following check box.</string>
+          <string>This plugin will use the active layer for selecting 'parcel' polygons in the Parcel layer. If you want to download all diagrams that intersect the active layer, please select all features or uncheck the following check box.</string>
          </property>
          <property name="wordWrap">
           <bool>true</bool>
@@ -61,7 +61,7 @@
        <item>
         <widget class="QCheckBox" name="selected_sites_only">
          <property name="text">
-          <string>Use only selected sites. Leave unchecked to fetch plans for all sites.</string>
+          <string>Use only selected features. Leave unchecked to fetch plans for all features.</string>
          </property>
          <property name="checked">
           <bool>true</bool>
@@ -71,7 +71,7 @@
        <item>
         <widget class="QLabel" name="label_2">
          <property name="text">
-          <string>Choose a 'parcels' polygon layer and its SG code column. This layer should contain cadastral units and have an attribute column that provides the Surveyor General (SG) code for each parcel.</string>
+          <string>Choose a 'parcels' polygon layer and its 21-digit SG code column. This layer should contain cadastral units and have an attribute column that provides the Surveyor General (SG) code for each parcel.</string>
          </property>
          <property name="wordWrap">
           <bool>true</bool>
@@ -115,7 +115,7 @@
        <item>
         <widget class="QLabel" name="label_3">
          <property name="text">
-          <string>Choose the directory where the Surveyor General (SG) diagrams should be downloaded into. One ore more subdirectories will be created under this directory, each containing the SG Diagram(s) for a parcel.</string>
+          <string>Choose the directory where the Surveyor General (SG) diagrams should be downloaded. One ore more subdirectories will be created under this directory, each containing the SG Diagram(s) for a parcel.</string>
          </property>
          <property name="wordWrap">
           <bool>true</bool>
