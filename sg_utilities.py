@@ -43,6 +43,7 @@ from PyQt4.QtCore import QSettings
 import urllib
 import sys
 from urlparse import urlparse
+from definitions import BASE_URL
 from file_downloader import FileDownloader
 from sg_exceptions import (
     DownloadException,
@@ -181,7 +182,7 @@ def construct_url(db_manager, sg_code=None, province_name=None):
     if province_name not in PROVINCE_NAMES:
         raise NotInSouthAfricaException
 
-    base_url = 'http://csg.dla.gov.za/esio/listdocument.jsp?'
+    base_url = BASE_URL + 'esio/listdocument.jsp?'
     reg_division = sg_code[:8]
 
     try:
@@ -280,7 +281,7 @@ def parse_download_page(download_page_url):
     :rtype: list
     """
     download_urls = []
-    url_prefix = 'http://csg.dla.gov.za/esio/'
+    url_prefix = BASE_URL + 'esio/'
     try:
         html = urllib.urlopen(download_page_url)
         download_page_soup = BeautifulSoup(html)
