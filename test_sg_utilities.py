@@ -25,6 +25,7 @@ from PyQt4 import QtCore
 
 from test.utilities_for_testing import (
     get_temp_shapefile_layer, TEMP_DIR, get_random_string)
+from definitions import BASE_URL
 from sg_utilities import (
     map_sg_codes_to_provinces,
     download_from_url,
@@ -89,8 +90,8 @@ class TestUtilities(unittest.TestCase):
     def test_download_from_url(self):
         """Test for download from url."""
         url = (
-            'http://csg.dla.gov.za/esio/viewTIFF?'
-            'furl=/images/9a/1018ML01.TIF&office=SGCTN')
+            BASE_URL +
+            'esio/viewTIFF?furl=/images/9a/1018ML01.TIF&office=SGCTN')
         output_directory = TEMP_DIR
 
         filename = get_random_string() + '.TIF'
@@ -161,18 +162,21 @@ class TestUtilities(unittest.TestCase):
 
     def test_parse_download_page(self):
         """Test for parse_download_page."""
-        url = ('http://csg.dla.gov.za/esio/listdocument.jsp?regDivision'
+        url = (
+            BASE_URL +
+            'esio/listdocument.jsp?regDivision'
                '=C0160013&Noffice=2&Erf=1234&Portion=0&FarmName=')
         urls = parse_download_page(url)
         expected_urls = [
-            'http://csg.dla.gov.za/esio/viewTIFF?furl=/'
+            BASE_URL + 'esio/viewTIFF?furl=/'
             'images/9a/1018ML01.TIF&office=SGCTN']
         message = 'Should be %s but got %s' % (expected_urls, urls)
         self.assertEqual(urls, expected_urls, message)
 
     def test_parse_url(self):
         """Test for get_filename."""
-        url = ('http://csg.dla.gov.za/esio/viewTIFF?furl=/'
+        url = (
+            BASE_URL + 'esio/viewTIFF?furl=/'
                'images/9a/1018ML01.TIF&office=SGCTN')
         filename = get_filename(url)
         expected_filename = '1018ML01.TIF'
@@ -256,7 +260,7 @@ class TestUtilities(unittest.TestCase):
         province = 'Western Cape'
         url = construct_url(self.database_manager, sg_code, province)
         expected_url = (
-            'http://csg.dla.gov.za/esio/listdocument.jsp?regDivision='
+            BASE_URL + 'esio/listdocument.jsp?regDivision='
             'C0130000&office=SGCTN&Noffice=2&Erf=00000767&Portion=00000')
 
         message = 'Expected %s, got %s' % (expected_url, url)
