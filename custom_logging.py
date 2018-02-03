@@ -16,18 +16,18 @@ from datetime import date
 import getpass
 from tempfile import mkstemp
 
-# pylint: disable=F0401
-# noinspection PyUnresolvedReferences
-from raven.handlers.logging import SentryHandler
-# noinspection PyUnresolvedReferences
-from raven import Client
-# pylint: enable=F0401
-LOGGER = logging.getLogger('SG-Downloader')
-
 third_party_path = os.path.abspath(
     os.path.join(os.path.dirname(__file__), 'third_party'))
 if third_party_path not in sys.path:
     sys.path.append(third_party_path)
+
+# pylint: disable=F0401
+# noinspection PyUnresolvedReferences
+from raven.handlers.logging import SentryHandler  # noqa
+# noinspection PyUnresolvedReferences
+from raven import Client # noqa
+# pylint: enable=F0401
+LOGGER = logging.getLogger('SG-Downloader')
 
 __author__ = 'tim@kartoza.com'
 __revision__ = '$Format:%H$'
