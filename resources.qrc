@@ -1,6 +1,0 @@
-<RCC>
-    <qresource prefix="/plugins/SGDiagramDownloader" >
-        <file>icon.svg</file>
-        <file>maptool.svg</file>
-    </qresource>
-</RCC>
