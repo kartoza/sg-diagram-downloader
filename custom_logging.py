@@ -9,12 +9,6 @@ Custom logging setup.
 
 """
 
-__author__ = 'tim@kartoza.com'
-__revision__ = '$Format:%H$'
-__date__ = '29/01/2011'
-__copyright__ = 'Copyright 2012, Australia Indonesia Facility for '
-__copyright__ += 'Disaster Reduction'
-
 import os
 import sys
 import logging
@@ -22,12 +16,6 @@ from datetime import date
 import getpass
 from tempfile import mkstemp
 
-from PyQt4 import QtCore
-
-third_party_path = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), 'third_party'))
-if third_party_path not in sys.path:
-    sys.path.append(third_party_path)
 # pylint: disable=F0401
 # noinspection PyUnresolvedReferences
 from raven.handlers.logging import SentryHandler
@@ -35,6 +23,17 @@ from raven.handlers.logging import SentryHandler
 from raven import Client
 # pylint: enable=F0401
 LOGGER = logging.getLogger('SG-Downloader')
+
+third_party_path = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), 'third_party'))
+if third_party_path not in sys.path:
+    sys.path.append(third_party_path)
+
+__author__ = 'tim@kartoza.com'
+__revision__ = '$Format:%H$'
+__date__ = '29/01/2011'
+__copyright__ = 'Copyright 2012, Australia Indonesia Facility for '
+__copyright__ += 'Disaster Reduction'
 
 
 def log_file_path():
@@ -67,7 +66,7 @@ class QgsLogHandler(logging.Handler):
             # like line number etc. you can get from the log message.
             # noinspection PyCallByClass
             QgsMessageLog.logMessage(message, 'QGIS', 0)
-        #Make sure it doesn't crash if using without QGIS
+        # Make sure it doesn't crash if using without QGIS
         except ImportError:
             pass
         except MemoryError:
@@ -146,7 +145,7 @@ def setup_logger(sentry_url, log_file=None):
     formatter = logging.Formatter(
         '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     # create syslog handler which logs even debug messages
-    log_temp_dir = temp_dir('logs')
+    # log_temp_dir = temp_dir('logs')
     path = log_file_path()
     if log_file is None:
         file_handler = logging.FileHandler(path)
