@@ -4,7 +4,7 @@
 
 # Enable SIP v2
 
-#from PyQt4.QtGui import QRegExpValidator, QValidator
+# from PyQt4.QtGui import QRegExpValidator, QValidator
 from PyQt4.QtCore import Qt, QSettings
 from PyQt4.QtGui import QProgressBar
 from qgis.core import QgsFeature, QgsFeatureRequest

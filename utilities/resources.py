@@ -9,6 +9,7 @@ from PyQt4 import uic
 
 LOGGER = logging.getLogger('SG-Downloader')
 
+
 def get_ui_class(ui_file):
     """Get UI Python class from .ui file.
 
@@ -28,7 +29,7 @@ def get_ui_class(ui_file):
     )
     LOGGER.debug(
         'UI file path %s is exist: %s' % (
-        ui_file_path, os.path.exists(ui_file_path)))
+            ui_file_path, os.path.exists(ui_file_path)))
     return uic.loadUiType(ui_file_path)[0]
 
 

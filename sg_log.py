@@ -25,14 +25,13 @@ __revision__ = '$Format:%H$'
 __date__ = '30/05/2014'
 __copyright__ = ''
 
-import os
 import logging
 import webbrowser
 
 # Import the PyQt and QGIS libraries
 # this import required to enable PyQt API v2
 # do it before Qt imports
-import qgis  # pylint: disable=W0611
+import qgis  # NOQA pylint: disable=unused-import
 from PyQt4 import QtGui
 
 from utilities.resources import get_ui_class

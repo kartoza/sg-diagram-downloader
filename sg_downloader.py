@@ -32,11 +32,10 @@ import logging
 # Import the PyQt and QGIS libraries
 # this import required to enable PyQt API v2
 # do it before Qt imports
-import qgis  # pylint: disable=W0611
+import qgis  # NOQA pylint: disable=unused-import
 from PyQt4 import QtGui
 from qgis.core import (
     QGis,
-    QgsVectorLayer,
     QgsMapLayer,
     QgsMapLayerRegistry)
 from PyQt4.QtCore import Qt
@@ -58,6 +57,7 @@ sg_diagrams_database = os.path.join(DATA_DIR, 'sg_diagrams.sqlite')
 FORM_CLASS = get_ui_class('sg_downloader_base.ui')
 
 LOGGER = logging.getLogger('SG-Downloader')
+
 
 # noinspection PyArgumentList
 class DownloadDialog(QtGui.QDialog, FORM_CLASS):
@@ -238,7 +238,7 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
         # Get rid of the message bar again.
         self.iface.messageBar().popWidget(message_bar)
 
-        #QgsMapLayerRegistry.instance().addMapLayers([layer])
+        # QgsMapLayerRegistry.instance().addMapLayers([layer])
         self.iface.messageBar().pushMessage(
             self.tr('Download completed.'),
             self.tr('Your files are available in %s.' % self.output_directory),
