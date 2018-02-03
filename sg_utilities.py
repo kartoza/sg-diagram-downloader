@@ -40,7 +40,6 @@ from PyQt4.QtNetwork import QNetworkAccessManager
 from PyQt4.QtCore import QSettings
 
 import urllib
-import sys
 from urlparse import urlparse
 from definitions import BASE_URL
 from file_downloader import FileDownloader
@@ -53,19 +52,12 @@ from sg_exceptions import (
     NotInSouthAfricaException
 )
 from proxy import get_proxy
-
-third_party_path = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), 'third_party'))
-if third_party_path not in sys.path:
-    sys.path.append(third_party_path)
+from custom_logging import LOGGER
 
 # pylint: disable=F0401
 # noinspection PyUnresolvedReferences
 from bs4 import BeautifulSoup
 # pylint: enable=F0401
-
-from custom_logging import LOGGER
-
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 SG_DIAGRAM_SQLITE3 = os.path.join(DATA_DIR, 'sg_diagrams.sqlite')
