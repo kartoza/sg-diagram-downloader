@@ -32,26 +32,12 @@ import logging
 # Import the PyQt and QGIS libraries
 # this import required to enable PyQt API v2
 # do it before Qt imports
-import qgis  # pylint: disable=W0611
+import qgis  # NOQA pylint: disable=unused-import
 
-from PyQt4.QtCore import (
-    Qt,
-    QSettings,
-    QTranslator,
-    qVersion,
-    QCoreApplication,
-    QUrl)
-from PyQt4.QtGui import (
-    QAction,
-    QIcon,
-    QProgressBar)
-from qgis.core import QgsMapLayerRegistry, QgsVectorLayer
-from qgis.gui import QgsMessageBar
+from PyQt4.QtCore import QCoreApplication
+from PyQt4.QtGui import QAction, QIcon
+from qgis.core import QgsVectorLayer
 
-from sg_action import SGAction
-
-# Initialize Qt resources from file resources.py
-# import resources_rc
 # Import the code for the dialog
 from sg_downloader import DownloadDialog
 from utilities.resources import resources_path

@@ -47,12 +47,6 @@ EXTRAS = icon.png metadata.txt LICENSE README.md
 
 STYLES = styles
 
-UI_FILES = \
-	sg_downloader_base.ui \
-	sg_log_base.ui
-
-COMPILED_RESOURCE_FILES = resources_rc.py
-
 #################################################
 # Normally you would not need to edit below here
 #################################################
@@ -68,16 +62,9 @@ PLUGIN_UPLOAD = ./plugin_upload.py
 
 QGISDIR=.qgis2
 
-default: compile
+test: test_code pylint
 
-compile: $(COMPILED_RESOURCE_FILES)
-
-%_rc.py : %.qrc
-	pyrcc4 -o $*_rc.py  $<
-
-test: test_code pep8 pylint
-
-test_code: compile # transcompile
+test_code: # transcompile
 	@echo
 	@echo "----------------------"
 	@echo "Regression Test Suite"
@@ -92,7 +79,7 @@ test_code: compile # transcompile
 		3>&1 1>&2 2>&3 3>&- || true
 
 #deploy: compile doc transcompile
-deploy: compile 
+deploy:
 	@echo
 	@echo "------------------------------------------"
 	@echo "Deploying plugin to your .qgis2 directory."
@@ -102,7 +89,6 @@ deploy: compile
 	# $HOME/$(QGISDIR)/python/plugins
 	mkdir -p $(HOME)/$(QGISDIR)/python/plugins/$(PLUGINNAME)
 	cp -vf $(PY_FILES) $(HOME)/$(QGISDIR)/python/plugins/$(PLUGINNAME)
-	cp -vf $(UI_FILES) $(COMPILED_RESOURCE_FILES) $(HOME)/$(QGISDIR)/python/plugins/$(PLUGINNAME)
 	cp -vf $(EXTRAS) $(HOME)/$(QGISDIR)/python/plugins/$(PLUGINNAME)
 	mkdir -p $(HOME)/$(QGISDIR)/python/plugins/$(PLUGINNAME)/i18n
 	#cp -vfr i18n/*.qm $(HOME)/$(QGISDIR)/python/plugins/$(PLUGINNAME)/i18n/
@@ -110,7 +96,7 @@ deploy: compile
 	cp -vfr $(THIRD_PARTY) $(HOME)/$(QGISDIR)/python/plugins/$(PLUGINNAME)/
 	cp -vfr $(DATA_DIR) $(HOME)/$(QGISDIR)/python/plugins/$(PLUGINNAME)/
 
-fastdeploy: derase compile
+fastdeploy: derase
 	@echo
 	@echo "------------------------------------------"
 	@echo "Fast Deploying plugin to your .qgis2 directory."
@@ -120,7 +106,6 @@ fastdeploy: derase compile
 	# $HOME/$(QGISDIR)/python/plugins
 	mkdir -p $(HOME)/$(QGISDIR)/python/plugins/$(PLUGINNAME)
 	cp -vf $(PY_FILES) $(HOME)/$(QGISDIR)/python/plugins/$(PLUGINNAME)
-	cp -vf $(UI_FILES) $(COMPILED_RESOURCE_FILES) $(HOME)/$(QGISDIR)/python/plugins/$(PLUGINNAME)
 	cp -vf $(EXTRAS) $(HOME)/$(QGISDIR)/python/plugins/$(PLUGINNAME)
 	mkdir -p $(HOME)/$(QGISDIR)/python/plugins/$(PLUGINNAME)/i18n
 	cp -vfr $(THIRD_PARTY) $(HOME)/$(QGISDIR)/python/plugins/$(PLUGINNAME)/
@@ -193,13 +178,6 @@ transclean:
 	@echo "------------------------------------"
 	rm -f i18n/*.qm
 
-clean:
-	@echo
-	@echo "------------------------------------"
-	@echo "Removing uic and rcc generated files"
-	@echo "------------------------------------"
-	rm $(COMPILED_RESOURCE_FILES)
-
 doc:
 	@echo
 	@echo "------------------------------------"
@@ -227,11 +205,11 @@ pylint:
 		grep -v locally-disabled || true
 
 
-# Run pep8 style checking
-#http://pypi.python.org/pypi/pep8
-pep8:
+# Run flake8 style checking
+flake8:
 	@echo
 	@echo "-----------"
-	@echo "PEP8 issues"
+	@echo "Flake8 issues"
 	@echo "-----------"
-	@pep8 --repeat --ignore=E203,E121,E122,E123,E124,E125,E126,E127,E128 --exclude conf.py,pydev,resources_rc.py,third_party . || true
+	@flake8 --version
+	@flake8 || true
