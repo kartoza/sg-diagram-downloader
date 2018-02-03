@@ -51,9 +51,10 @@ from qgis.gui import QgsMessageBar
 from sg_action import SGAction
 
 # Initialize Qt resources from file resources.py
-import resources_rc
+# import resources_rc
 # Import the code for the dialog
 from sg_downloader import DownloadDialog
+from utilities.resources import resources_path
 
 # from pydev import pydevd  # pylint: disable=F0401
 
@@ -197,7 +198,7 @@ class SGDiagramDownloader:
     def initGui(self):
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
         self.menu = u'Surveyor General Diagram Downloader'
-        icon_path = ':/plugins/SGDiagramDownloader/icon.svg'
+        icon_path = resources_path('icon.svg')
         self.download_dialog = self.add_action(
             icon_path,
             text=self.tr(u'Download Surveyor General Diagram',),
