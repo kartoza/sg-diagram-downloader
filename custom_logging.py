@@ -34,7 +34,7 @@ from raven.handlers.logging import SentryHandler
 # noinspection PyUnresolvedReferences
 from raven import Client
 # pylint: enable=F0401
-LOGGER = logging.getLogger('QGIS')
+LOGGER = logging.getLogger('SG-Downloader')
 
 
 def log_file_path():
