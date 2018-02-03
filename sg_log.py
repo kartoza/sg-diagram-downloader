@@ -25,19 +25,18 @@ __revision__ = '$Format:%H$'
 __date__ = '30/05/2014'
 __copyright__ = ''
 
-import os
 import logging
 import webbrowser
 
 # Import the PyQt and QGIS libraries
 # this import required to enable PyQt API v2
 # do it before Qt imports
-import qgis  # pylint: disable=W0611
-from PyQt4 import QtGui, uic
+import qgis  # NOQA pylint: disable=unused-import
+from PyQt4 import QtGui
 
+from utilities.resources import get_ui_class
 
-FORM_CLASS, _ = uic.loadUiType(os.path.join(
-    os.path.dirname(__file__), 'sg_log_base.ui'))
+FORM_CLASS = get_ui_class('sg_log_base.ui')
 
 LOGGER = logging.getLogger('QGIS')
 

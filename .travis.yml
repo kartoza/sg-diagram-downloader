@@ -1,0 +1,38 @@
+language: python
+
+python:
+  - "2.7"
+
+virtualenv:
+  system_site_packages: true
+
+branches:
+  only:
+    - develop
+
+-before_install:
+  - sudo apt-get -qq -y update
+
+install:
+  - sudo apt-get install -y git qgis python-qgis pylint pep8 python-nose python-coverage pyflakes python-nosexcover
+  - pip install nose-exclude
+
+before_script:
+  - echo "Build starting on " `date`
+  - export QGIS_PREFIX_PATH=/usr
+  - export PYTHONPATH=${QGIS_PREFIX_PATH}/share/qgis/python/:${QGIS_PREFIX_PATH}/share/qgis/python/plugins:`pwd`
+  - echo "PYTHONPATH:" $PYTHONPATH
+  - ls ${QGIS_PREFIX_PATH}/share/qgis/python/plugins/
+  - export LD_LIBRARY_PATH=${QGIS_PREFIX_PATH}/lib
+
+script:
+  - xvfb-run --server-args="-screen 0, 1024x768x24" nosetests -v --with-id --with-xcoverage --with-xunit --verbose --cover-package=. --exclude-dir=third_party
+  - pep8 . --exclude=third_party
+
+after_success:
+  - pip install coveralls
+  - coveralls
+
+notifications:
+  email:
+    - ismail@kartoza.com
