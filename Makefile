@@ -211,9 +211,5 @@ flake8:
 	@echo "-----------"
 	@echo "Flake8 issues"
 	@echo "-----------"
-<<<<<<< HEAD
-	@pep8 --repeat --ignore=E203,E121,E122,E123,E124,E125,E126,E127,E128 --exclude conf.py,pydev,resources_rc.py,third_party . || true
-=======
 	@flake8 --version
 	@flake8 || true
->>>>>>> 6a68c95aae14b773649d41bebfdf26421f7cc74a
