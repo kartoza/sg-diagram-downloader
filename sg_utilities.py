@@ -32,7 +32,6 @@ from qgis.core import (
     QgsCoordinateTransform,
     QgsFeature,
     QgsFeatureRequest,
-    QgsSpatialIndex,
     QgsRectangle,
     QgsCoordinateReferenceSystem)
 
@@ -369,21 +368,6 @@ def download_sg_diagram(
     message = 'Downloads completed for %s in %s' % (sg_code, province_name)
     callback(count, total, message)
     return report
-
-
-def get_spatial_index(data_provider):
-    """Create spatial index from a data provider.
-
-    :param data_provider: QGIS data provider name .e.g.'ogr'.
-    :type data_provider: str
-    """
-    qgs_feature = QgsFeature()
-    index = QgsSpatialIndex()
-    # noinspection PyUnresolvedReferences
-    qgs_features = data_provider.getFeatures()
-    while qgs_features.nextFeature(qgs_feature):
-        index.insertFeature(qgs_feature)
-    return index
 
 
 def province_for_point(db_manager, centroid):
