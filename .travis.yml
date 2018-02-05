@@ -16,6 +16,7 @@ branches:
 install:
   - sudo apt-get install -y git qgis python-qgis pylint pep8 python-nose python-coverage pyflakes python-nosexcover
   - pip install nose-exclude
+  - pip install flake8
 
 before_script:
   - echo "Build starting on " `date`
@@ -27,7 +28,7 @@ before_script:
 
 script:
   - xvfb-run --server-args="-screen 0, 1024x768x24" nosetests -v --with-id --with-xcoverage --with-xunit --verbose --cover-package=. --exclude-dir=third_party
-  - pep8 . --exclude=third_party
+  - make flake8
 
 after_success:
   - pip install coveralls

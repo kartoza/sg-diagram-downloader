@@ -32,17 +32,19 @@ import logging
 # Import the PyQt and QGIS libraries
 # this import required to enable PyQt API v2
 # do it before Qt imports
-import qgis  # pylint: disable=W0611
-from PyQt4 import QtGui, uic
+import qgis  # NOQA pylint: disable=unused-import
+from PyQt4 import QtGui
 from qgis.core import (
     QGis,
-    QgsVectorLayer,
     QgsMapLayer,
     QgsMapLayerRegistry)
 from PyQt4.QtCore import Qt
 from PyQt4.QtGui import QProgressBar
 from PyQt4.QtCore import pyqtSignature, QSettings
 from qgis.gui import QgsMessageBar
+
+from utilities.resources import get_ui_class
+
 from sg_log import LogDialog
 
 from sg_utilities import download_sg_diagrams, write_log
@@ -52,10 +54,9 @@ DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 
 sg_diagrams_database = os.path.join(DATA_DIR, 'sg_diagrams.sqlite')
 
-FORM_CLASS, _ = uic.loadUiType(os.path.join(
-    os.path.dirname(__file__), 'sg_downloader_base.ui'))
+FORM_CLASS = get_ui_class('sg_downloader_base.ui')
 
-LOGGER = logging.getLogger('QGIS')
+LOGGER = logging.getLogger('SG-Downloader')
 
 
 # noinspection PyArgumentList
@@ -237,7 +238,7 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
         # Get rid of the message bar again.
         self.iface.messageBar().popWidget(message_bar)
 
-        #QgsMapLayerRegistry.instance().addMapLayers([layer])
+        # QgsMapLayerRegistry.instance().addMapLayers([layer])
         self.iface.messageBar().pushMessage(
             self.tr('Download completed.'),
             self.tr('Your files are available in %s.' % self.output_directory),

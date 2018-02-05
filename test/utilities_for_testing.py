@@ -176,4 +176,8 @@ def get_temp_shapefile_layer(shapefile_path, title, temp_dir=TEMP_DIR):
 
     """
     temp_shapefile = copy_temp_layer(shapefile_path, temp_dir)
-    return get_shapefile_layer(temp_shapefile, title)
+    layer = get_shapefile_layer(temp_shapefile, title)
+    if layer.isValid():
+        return layer
+    else:
+        raise Exception('Layer is not valid.')

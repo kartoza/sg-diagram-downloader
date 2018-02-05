@@ -30,7 +30,6 @@ import re
 
 from qgis.core import (
     QgsCoordinateTransform,
-    QgsVectorLayer,
     QgsFeature,
     QgsFeatureRequest,
     QgsSpatialIndex,
@@ -41,8 +40,8 @@ from PyQt4.QtNetwork import QNetworkAccessManager
 from PyQt4.QtCore import QSettings
 
 import urllib
-import sys
 from urlparse import urlparse
+from definitions import BASE_URL
 from file_downloader import FileDownloader
 from sg_exceptions import (
     DownloadException,
@@ -53,18 +52,12 @@ from sg_exceptions import (
     NotInSouthAfricaException
 )
 from proxy import get_proxy
-from database_manager import DatabaseManager
+from custom_logging import LOGGER
 
-third_party_path = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), 'third_party'))
-if third_party_path not in sys.path:
-    sys.path.append(third_party_path)
 # pylint: disable=F0401
 # noinspection PyUnresolvedReferences
 from bs4 import BeautifulSoup
 # pylint: enable=F0401
-
-from custom_logging import LOGGER
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 SG_DIAGRAM_SQLITE3 = os.path.join(DATA_DIR, 'sg_diagrams.sqlite')
@@ -181,7 +174,7 @@ def construct_url(db_manager, sg_code=None, province_name=None):
     if province_name not in PROVINCE_NAMES:
         raise NotInSouthAfricaException
 
-    base_url = 'http://csg.dla.gov.za/esio/listdocument.jsp?'
+    base_url = BASE_URL + 'esio/listdocument.jsp?'
     reg_division = sg_code[:8]
 
     try:
@@ -249,7 +242,7 @@ def download_from_url(url, output_directory, filename=None, use_cache=True):
     # Set Proxy in webpage
     proxy = get_proxy()
     network_manager = QNetworkAccessManager()
-    if not proxy is None:
+    if proxy is not None:
         network_manager.setProxy(proxy)
 
     # Download Process
@@ -280,7 +273,7 @@ def parse_download_page(download_page_url):
     :rtype: list
     """
     download_urls = []
-    url_prefix = 'http://csg.dla.gov.za/esio/'
+    url_prefix = BASE_URL + 'esio/'
     try:
         html = urllib.urlopen(download_page_url)
         download_page_soup = BeautifulSoup(html)
