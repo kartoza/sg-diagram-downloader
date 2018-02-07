@@ -22,7 +22,10 @@ about=Sponsored by Kirchhoff Surveyors and Kartoza
 # Optional items:
 
 # Uncomment the following line and add your changelog:
-changelog=1.0.7
+changelog=
+    1.0.8
+    - Use new base URL to http://196.25.56.232/ to make the plugin works again.
+    1.0.7
     - Add changelog #25
     1.0.6
     - Fix Handle non geographic projections correctly #22
