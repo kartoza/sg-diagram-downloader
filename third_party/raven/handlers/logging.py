@@ -23,7 +23,7 @@ class SentryHandler(logging.Handler, object):
         client = kwargs.get('client_cls', Client)
         if len(args) == 1:
             arg = args[0]
-            if isinstance(arg, basestring):
+            if isinstance(arg, str):
                 self.client = client(dsn=arg)
             elif isinstance(arg, Client):
                 self.client = arg
@@ -65,7 +65,7 @@ class SentryHandler(logging.Handler, object):
     def _emit(self, record, **kwargs):
         data = {}
 
-        for k, v in record.__dict__.iteritems():
+        for k, v in record.__dict__.items():
             if '.' not in k and k not in ('culprit',):
                 continue
             data[k] = v
@@ -104,7 +104,7 @@ class SentryHandler(logging.Handler, object):
                 extra = {}
 
         # Add in all of the data from the record that we aren't already capturing
-        for k in record.__dict__.keys():
+        for k in list(record.__dict__.keys()):
             if k in ('stack', 'name', 'args', 'msg', 'levelno', 'exc_text', 'exc_info', 'data', 'created', 'levelname', 'msecs', 'relativeCreated'):
                 continue
             if k.startswith('_'):

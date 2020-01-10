@@ -7,10 +7,12 @@
      (at your option) any later version.
 
 """
+from __future__ import absolute_import
+from builtins import str
+
 __author__ = 'ismail@kartoza.com'
 __date__ = '30/05/2014'
 __copyright__ = ''
-
 
 import unittest
 import os
@@ -21,12 +23,12 @@ from qgis.core import (
     QgsCoordinateReferenceSystem,
     QgsCoordinateTransform
 )
-from PyQt4 import QtCore
+from qgis.PyQt import QtCore
 
-from test.utilities_for_testing import (
+from .test.utilities_for_testing import (
     get_temp_shapefile_layer, TEMP_DIR, get_random_string)
-from definitions import BASE_URL
-from sg_utilities import (
+from .definitions import BASE_URL
+from .sg_utilities import (
     map_sg_codes_to_provinces,
     download_from_url,
     get_office,
@@ -39,14 +41,13 @@ from sg_utilities import (
     construct_url,
     province_for_point)
 
-from database_manager import DatabaseManager
+from .database_manager import DatabaseManager
+from .test.utilities_for_testing import get_qgis_app
 
 DATA_TEST_DIR = os.path.join(os.path.dirname(__file__), 'test', 'data')
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 
 sg_diagrams_database = os.path.join(DATA_DIR, 'sg_diagrams.sqlite')
-
-from test.utilities_for_testing import get_qgis_app
 
 QGIS_APP = get_qgis_app()
 
@@ -90,8 +91,8 @@ class TestUtilities(unittest.TestCase):
     def test_download_from_url(self):
         """Test for download from url."""
         url = (
-            BASE_URL +
-            'esio/viewTIFF?furl=/images/9a/1018ML01.TIF&office=SGCTN')
+                BASE_URL +
+                'esio/viewTIFF?furl=/images/9a/1018ML01.TIF&office=SGCTN')
         output_directory = TEMP_DIR
 
         filename = get_random_string() + '.TIF'
@@ -111,13 +112,10 @@ class TestUtilities(unittest.TestCase):
         site_layer.setSelectedFeatures([7])
         sg_codes = map_sg_codes_to_provinces(
             self.database_manager, site_layer, diagram_layer, sg_code_field)
-        message = (
-            'The number of sg codes extracted should be 33. I got %s' % len(
-                sg_codes))
+        message = ('The number of sg codes extracted should be 33. I got %s' % len(sg_codes))
         self.assertEqual(31, len(sg_codes), message)
 
-        site_layer = get_temp_shapefile_layer(
-            dummy_purchaseplan_layer, 'purchaseplan')
+        site_layer = get_temp_shapefile_layer(dummy_purchaseplan_layer, 'purchaseplan')
         diagram_layer = get_temp_shapefile_layer(
             dummy_erf_layer, 'parent farm')
         sg_code_field = 'id'
@@ -130,8 +128,7 @@ class TestUtilities(unittest.TestCase):
         self.assertEqual(expected_result, sg_codes, message)
 
         # site and parcel layer do not use 4326 crs
-        site_layer = get_temp_shapefile_layer(
-            dummy_purchaseplan_layer, 'purchaseplan')
+        site_layer = get_temp_shapefile_layer(dummy_purchaseplan_layer, 'purchaseplan')
         diagram_layer = get_temp_shapefile_layer(
             dummy_farm_layer, 'parent farm')
         sg_code_field = 'id'
@@ -163,21 +160,21 @@ class TestUtilities(unittest.TestCase):
     def test_parse_download_page(self):
         """Test for parse_download_page."""
         url = (
-            BASE_URL +
-            'esio/listdocument.jsp?regDivision'
-               '=C0160013&Noffice=2&Erf=1234&Portion=0&FarmName=')
+                BASE_URL +
+                'esio/listdocument.jsp?regDivision'
+                '=C0160013&Noffice=2&Erf=1234&Portion=0&FarmName=')
         urls = parse_download_page(url)
         expected_urls = [
             BASE_URL + 'esio/viewTIFF?furl=/'
-            'images/9a/1018ML01.TIF&office=SGCTN']
+                       'images/9a/1018ML01.TIF&office=SGCTN']
         message = 'Should be %s but got %s' % (expected_urls, urls)
         self.assertEqual(urls, expected_urls, message)
 
     def test_parse_url(self):
         """Test for get_filename."""
         url = (
-            BASE_URL + 'esio/viewTIFF?furl=/'
-               'images/9a/1018ML01.TIF&office=SGCTN')
+                BASE_URL + 'esio/viewTIFF?furl=/'
+                           'images/9a/1018ML01.TIF&office=SGCTN')
         filename = get_filename(url)
         expected_filename = '1018ML01.TIF'
         message = 'Should be %s but got %s' % (expected_filename, filename)
@@ -205,9 +202,9 @@ class TestUtilities(unittest.TestCase):
         self.assertFalse(is_valid_sg_code(null_variant))
 
         # unicode
-        unicode_sg_code = unicode('B01900000000026300000')
+        unicode_sg_code = str('B01900000000026300000')
         self.assertTrue(is_valid_sg_code(unicode_sg_code))
-        unicode_sg_code = unicode('B0190000000002630000X')
+        unicode_sg_code = str('B0190000000002630000X')
         self.assertFalse(is_valid_sg_code(unicode_sg_code))
 
     def test_point_to_rectangle(self):
@@ -260,8 +257,8 @@ class TestUtilities(unittest.TestCase):
         province = 'Western Cape'
         url = construct_url(self.database_manager, sg_code, province)
         expected_url = (
-            BASE_URL + 'esio/listdocument.jsp?regDivision='
-            'C0130000&office=SGCTN&Noffice=2&Erf=00000767&Portion=00000')
+                BASE_URL + 'esio/listdocument.jsp?regDivision='
+                           'C0130000&office=SGCTN&Noffice=2&Erf=00000767&Portion=00000')
 
         message = 'Expected %s, got %s' % (expected_url, url)
         self.assertEqual(url, expected_url, message)

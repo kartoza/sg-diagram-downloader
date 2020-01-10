@@ -1,8 +1,11 @@
 # coding=utf-8
 """Custom QAction implementation."""
-from PyQt4.QtGui import QAction
-from qgis.core import QGis, QgsMapLayer
-from sg_map_tool import SGMapTool
+from __future__ import absolute_import
+
+from qgis.PyQt.QtWidgets import QAction
+from qgis.core import QgsMapLayer, QgsWkbTypes
+
+from .sg_map_tool import SGMapTool
 
 
 class SGAction(QAction):
@@ -42,7 +45,7 @@ class SGAction(QAction):
             self._disable()
             return
 
-        if not layer.geometryType() == QGis.Polygon:
+        if not layer.geometryType() == QgsWkbTypes.PolygonGeometry:
             self._disable()
             return
 

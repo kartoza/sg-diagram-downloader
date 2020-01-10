@@ -19,14 +19,15 @@ Test for Database manager for Surveyor General Diagram
  *                                                                         *
  ***************************************************************************/
 """
+from __future__ import absolute_import
 __author__ = 'ismail@kartoza.com'
 __revision__ = '$Format:%H$'
 __date__ = '24/06/2014'
 __copyright__ = ''
 
 import unittest
-from database_manager import DatabaseManager
-from sg_exceptions import DatabaseException
+from .database_manager import DatabaseManager
+from .sg_exceptions import DatabaseException
 import os
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')

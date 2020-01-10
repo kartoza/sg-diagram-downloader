@@ -19,6 +19,7 @@ LogDialog
  *                                                                         *
  ***************************************************************************/
 """
+from __future__ import absolute_import
 
 __author__ = 'ismail@kartoza.com'
 __revision__ = '$Format:%H$'
@@ -32,9 +33,9 @@ import webbrowser
 # this import required to enable PyQt API v2
 # do it before Qt imports
 import qgis  # NOQA pylint: disable=unused-import
-from PyQt4 import QtGui
+from qgis.PyQt import QtGui
 
-from utilities.resources import get_ui_class
+from .utilities.resources import get_ui_class
 
 FORM_CLASS = get_ui_class('sg_log_base.ui')
 
