@@ -19,7 +19,9 @@ DownloadDialog
  *                                                                         *
  ***************************************************************************/
 """
+from __future__ import absolute_import
 
+from builtins import str
 __author__ = 'ismail@kartoza.com'
 __revision__ = '$Format:%H$'
 __date__ = '30/05/2014'
@@ -33,22 +35,22 @@ import logging
 # this import required to enable PyQt API v2
 # do it before Qt imports
 import qgis  # NOQA pylint: disable=unused-import
-from PyQt4 import QtGui
+from qgis.PyQt import QtGui
 from qgis.core import (
     QGis,
     QgsMapLayer,
     QgsMapLayerRegistry)
-from PyQt4.QtCore import Qt
-from PyQt4.QtGui import QProgressBar
-from PyQt4.QtCore import pyqtSignature, QSettings
+from qgis.PyQt.QtCore import Qt
+from qgis.PyQt.QtWidgets import QProgressBar
+from qgis.PyQt.QtCore import QSettings
 from qgis.gui import QgsMessageBar
 
-from utilities.resources import get_ui_class
+from .utilities.resources import get_ui_class
 
-from sg_log import LogDialog
+from .sg_log import LogDialog
 
-from sg_utilities import download_sg_diagrams, write_log
-from database_manager import DatabaseManager
+from .sg_utilities import download_sg_diagrams, write_log
+from .database_manager import DatabaseManager
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 
@@ -95,7 +97,7 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
         """Populate the combo boxes with all polygon layers loaded in QGIS."""
         # noinspection PyArgumentList
         registry = QgsMapLayerRegistry.instance()
-        layers = registry.mapLayers().values()
+        layers = list(registry.mapLayers().values())
         found_flag = False
         for layer in layers:
             # check if layer is a vector polygon layer
@@ -120,7 +122,7 @@ class DownloadDialog(QtGui.QDialog, FORM_CLASS):
             index, Qt.UserRole)
         # noinspection PyArgumentList
         layer = QgsMapLayerRegistry.instance().mapLayer(layer_id)
-        fields = layer.dataProvider().fieldNameMap().keys()
+        fields = list(layer.dataProvider().fieldNameMap().keys())
         self.combo_box_sg_code_field.clear()
         for field in fields:
             self.combo_box_sg_code_field.insertItem(0, field, field)

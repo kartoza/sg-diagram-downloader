@@ -13,8 +13,8 @@ email : motta _dot_ luiz _at_ gmail.com
    (at your option) any later version.
 
 """
-from PyQt4.QtCore import QSettings, QT_VERSION
-from PyQt4.QtNetwork import QNetworkProxy
+from qgis.PyQt.QtCore import QSettings, QT_VERSION
+from PyQt5.QtNetwork import QNetworkProxy
 
 
 def get_proxy():

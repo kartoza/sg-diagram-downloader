@@ -20,7 +20,7 @@ class SentryHandler(logbook.Handler):
     def __init__(self, *args, **kwargs):
         if len(args) == 1:
             arg = args[0]
-            if isinstance(arg, basestring):
+            if isinstance(arg, str):
                 self.client = kwargs.pop('client_cls', Client)(dsn=arg)
             elif isinstance(arg, Client):
                 self.client = arg

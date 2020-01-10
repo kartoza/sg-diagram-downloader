@@ -8,6 +8,7 @@ Custom logging setup.
      (at your option) any later version.
 
 """
+from __future__ import print_function
 
 import os
 import sys
@@ -25,7 +26,8 @@ if third_party_path not in sys.path:
 # noinspection PyUnresolvedReferences
 from raven.handlers.logging import SentryHandler  # noqa
 # noinspection PyUnresolvedReferences
-from raven import Client # noqa
+from raven import Client  # noqa
+
 # pylint: enable=F0401
 LOGGER = logging.getLogger('SG-Downloader')
 
@@ -47,6 +49,12 @@ def log_file_path():
     return path
 
 
+def write_log_message(message, tag, level):
+    log_path = log_file_path()
+    with open(log_path, 'a') as logfile:
+        logfile.write('{}({}): {}'.format(tag, level, message))
+
+
 class QgsLogHandler(logging.Handler):
     """A logging handler that will log messages to the QGIS logging console."""
 
@@ -65,17 +73,17 @@ class QgsLogHandler(logging.Handler):
             # Check logging.LogRecord properties for lots of other goodies
             # like line number etc. you can get from the log message.
             # noinspection PyCallByClass
-            QgsMessageLog.logMessage(message, 'QGIS', 0)
+            QgsMessageLog.instance().messageReceived.connect(write_log_message())
+            QgsMessageLog.logMessage("Your plugin code has been executed correctly",
+                                     'SG_Diagram Downloader', level=QgsMessageLog.INFO)
+
         # Make sure it doesn't crash if using without QGIS
         except ImportError:
             pass
         except MemoryError:
-            message = (
-                'Due to memory limitations on this machine, the full log '
-                'cannot be handled.')
-            print message
             # noinspection PyUnboundLocalVariable
-            QgsMessageLog.logMessage(message, 'QGIS', 0)
+            QgsMessageLog.logMessage("Due to memory limitations on this machine, the full log, cannot be handled",
+                                     level=QgsMessageLog.WARNING)
 
 
 def add_logging_handler_once(logger, handler):
@@ -210,7 +218,7 @@ def temp_dir(sub_dir='work'):
         # Ensure that the dir is world writable
         # Umask sets the new mask and returns the old
         old_mask = os.umask(0000)
-        os.makedirs(temp_path, 0777)
+        os.makedirs(temp_path, 0o777)
         # Reinstate the old mask for tmp
         os.umask(old_mask)
     return temp_path

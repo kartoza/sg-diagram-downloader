@@ -7,8 +7,13 @@ Feed Parser. It works best on XML and XML, but it does not rewrite the
 XML or HTML to reflect a new encoding; that's the tree builder's job.
 """
 
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
+from builtins import chr
+from builtins import object
 import codecs
-from htmlentitydefs import codepoint2name
+from html.entities import codepoint2name
 import re
 import logging
 import string
@@ -56,7 +61,7 @@ class EntitySubstitution(object):
         reverse_lookup = {}
         characters_for_re = []
         for codepoint, name in list(codepoint2name.items()):
-            character = unichr(codepoint)
+            character = chr(codepoint)
             if codepoint != 34:
                 # There's no point in turning the quotation mark into
                 # &quot;, unless it happens within an attribute value, which
@@ -192,7 +197,7 @@ class EntitySubstitution(object):
             cls._substitute_html_entity, s)
 
 
-class EncodingDetector:
+class EncodingDetector(object):
     """Suggests a number of possible encodings for a bytestring.
 
     Order of precedence:
@@ -311,7 +316,7 @@ class EncodingDetector:
             return declared_encoding.lower()
         return None
 
-class UnicodeDammit:
+class UnicodeDammit(object):
     """A class for detecting the encoding of a *ML document and
     converting it to a Unicode string. If the source encoding is
     windows-1252, can replace MS smart quotes with their HTML or XML
@@ -340,9 +345,9 @@ class UnicodeDammit:
         self.detector = EncodingDetector(markup, override_encodings, is_html)
 
         # Short-circuit if the data is in Unicode to begin with.
-        if isinstance(markup, unicode) or markup == '':
+        if isinstance(markup, str) or markup == '':
             self.markup = markup
-            self.unicode_markup = unicode(markup)
+            self.unicode_markup = str(markup)
             self.original_encoding = None
             return
 
@@ -425,7 +430,7 @@ class UnicodeDammit:
     def _to_unicode(self, data, encoding, errors="strict"):
         '''Given a string and its encoding, decodes the string into Unicode.
         %encoding is a string recognized by encodings.aliases'''
-        return unicode(data, encoding, errors)
+        return str(data, encoding, errors)
 
     @property
     def declared_html_encoding(self):

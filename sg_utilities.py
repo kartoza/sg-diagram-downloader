@@ -19,6 +19,12 @@ Utilities for Surveyor General Diagram
  *                                                                         *
  ***************************************************************************/
 """
+from __future__ import absolute_import
+
+from future import standard_library
+
+standard_library.install_aliases()
+from builtins import str
 
 __author__ = 'ismail@kartoza.com'
 __revision__ = '$Format:%H$'
@@ -35,14 +41,14 @@ from qgis.core import (
     QgsRectangle,
     QgsCoordinateReferenceSystem)
 
-from PyQt4.QtNetwork import QNetworkAccessManager
-from PyQt4.QtCore import QSettings
+from PyQt5.QtNetwork import QNetworkAccessManager
+from qgis.PyQt.QtCore import QSettings
 
-import urllib
-from urlparse import urlparse
-from definitions import BASE_URL
-from file_downloader import FileDownloader
-from sg_exceptions import (
+import urllib.request, urllib.parse, urllib.error
+from urllib.parse import urlparse
+from .definitions import BASE_URL
+from .file_downloader import FileDownloader
+from .sg_exceptions import (
     DownloadException,
     DatabaseException,
     UrlException,
@@ -50,12 +56,13 @@ from sg_exceptions import (
     ParseException,
     NotInSouthAfricaException
 )
-from proxy import get_proxy
-from custom_logging import LOGGER
+from .proxy import get_proxy
+from .custom_logging import LOGGER
 
 # pylint: disable=F0401
 # noinspection PyUnresolvedReferences
 from bs4 import BeautifulSoup
+
 # pylint: enable=F0401
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
@@ -105,8 +112,8 @@ def get_office(db_manager, region_code=None, province=None):
     """
     try:
         query = (
-            "SELECT office, office_no, typology FROM regional_office WHERE "
-            "province='%s' AND region_code='%s'" % (province, region_code))
+                "SELECT office, office_no, typology FROM regional_office WHERE "
+                "province='%s' AND region_code='%s'" % (province, region_code))
 
         result = db_manager.fetch_one(query)
 
@@ -125,7 +132,7 @@ def is_valid_sg_code(value):
     :rtype: bool
     """
     # Handling unicode input. Found on Windows.
-    if type(value) == unicode:
+    if type(value) == str:
         value = str(value)
 
     # False if value is not a string or value is not True
@@ -274,7 +281,7 @@ def parse_download_page(download_page_url):
     download_urls = []
     url_prefix = BASE_URL + 'esio/'
     try:
-        html = urllib.urlopen(download_page_url)
+        html = urllib.request.urlopen(download_page_url)
         download_page_soup = BeautifulSoup(html)
         urls = download_page_soup.find_all('a')
         for url in urls:
@@ -325,15 +332,15 @@ def download_sg_diagram(
             UrlException,
             NotInSouthAfricaException) as e:
         report += (
-            'Failed: Downloading SG code %s for province %s because of %s\n' %
-            (sg_code, province_name, e.reason))
+                'Failed: Downloading SG code %s for province %s because of %s\n' %
+                (sg_code, province_name, e.reason))
         return report
     try:
         download_links = parse_download_page(download_page)
     except ParseException as e:
         report += (
-            'Failed: Downloading SG code %s for province %s because of %s\n' %
-            (sg_code, province_name, e.reason))
+                'Failed: Downloading SG code %s for province %s because of %s\n' %
+                (sg_code, province_name, e.reason))
         return report
 
     output_directory = os.path.join(output_directory, sg_code)
@@ -486,7 +493,7 @@ def print_progress_callback(current, maximum, message=None):
     :param message: Optional message to display in the progress bar
     :type message: str, QString
     """
-    print ('%d of %d' + str(message)) % (current, maximum)
+    print('%d of %d' + str(message)) % (current, maximum)
 
 
 def download_sg_diagrams(
@@ -535,7 +542,7 @@ def download_sg_diagrams(
     maximum = len(sg_codes_and_provinces)
     current = 0
     report = ''
-    for sg_code, province in sg_codes_and_provinces.iteritems():
+    for sg_code, province in sg_codes_and_provinces.items():
         current += 1
         message = 'Downloading SG Code %s from %s' % (sg_code, province)
         callback(current, maximum, message)
@@ -546,7 +553,7 @@ def download_sg_diagrams(
                 province,
                 output_directory,
                 callback)
-        except Exception, e:
+        except Exception as e:
             report += 'Failed to download %s %s %s\n' % (sg_code, province, e)
             LOGGER.exception(e)
 
