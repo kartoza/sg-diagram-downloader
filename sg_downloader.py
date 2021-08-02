@@ -38,7 +38,9 @@ import qgis  # NOQA pylint: disable=unused-import
 from qgis.core import (
     Qgis,
     QgsMapLayer,
-    QgsProject)
+    QgsProject,
+    QgsWkbTypes,
+)
 from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtWidgets import (
     QDialog,
@@ -106,7 +108,7 @@ class DownloadDialog(QDialog, FORM_CLASS):
         for layer in layers:
             # check if layer is a vector polygon layer
             if (layer.type() == QgsMapLayer.VectorLayer and
-                    layer.geometryType() == Qgis.Polygon):
+                    layer.geometryType() == QgsWkbTypes.PolygonGeometry):
                 found_flag = True
                 text = layer.name()
                 data = str(layer.id())
@@ -120,6 +122,8 @@ class DownloadDialog(QDialog, FORM_CLASS):
         :param index: Passed by the signal that triggers this slot.
         :type index: int
         """
+        if not isinstance(index, int):
+            return
         layer_id = self.combo_box_parcel_layer.itemData(
             index, Qt.UserRole)
         # noinspection PyArgumentList
@@ -205,7 +209,7 @@ class DownloadDialog(QDialog, FORM_CLASS):
         progress_bar.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         message_bar.layout().addWidget(progress_bar)
         self.iface.messageBar().pushWidget(
-            message_bar, self.iface.messageBar().INFO)
+            message_bar, Qgis.Info)
         self.message_bar = message_bar
         self.save_state()
         self.close()
@@ -244,7 +248,7 @@ class DownloadDialog(QDialog, FORM_CLASS):
         self.iface.messageBar().pushMessage(
             self.tr('Download completed.'),
             self.tr('Your files are available in %s.' % self.output_directory),
-            level=QgsMessageBar.INFO,
+            level=Qgis.Info,
             duration=10)
         write_log(report, self.log_file)
         self.show_log(report, self.log_file)
