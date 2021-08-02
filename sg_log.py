@@ -34,6 +34,7 @@ import webbrowser
 # do it before Qt imports
 import qgis  # NOQA pylint: disable=unused-import
 from qgis.PyQt import QtGui
+from qgis.PyQt.QtWidgets import QDialog
 
 from .utilities.resources import get_ui_class
 
@@ -43,7 +44,7 @@ LOGGER = logging.getLogger('QGIS')
 
 
 # noinspection PyArgumentList
-class LogDialog(QtGui.QDialog, FORM_CLASS):
+class LogDialog(QDialog, FORM_CLASS):
     """GUI for downloading SG Plans."""
     def __init__(self, iface, parent=None):
         """Constructor.
