@@ -35,11 +35,14 @@ import os
 import re
 
 from qgis.core import (
+    QgsCoordinateReferenceSystem,
     QgsCoordinateTransform,
     QgsFeature,
     QgsFeatureRequest,
+    QgsProject,
     QgsRectangle,
-    QgsCoordinateReferenceSystem)
+    QgsSpatialIndex,
+    )
 
 from PyQt5.QtNetwork import QNetworkAccessManager
 from qgis.PyQt.QtCore import QSettings
@@ -377,6 +380,21 @@ def download_sg_diagram(
     return report
 
 
+def get_spatial_index(data_provider):
+    """Create spatial index from a data provider.
+
+    :param data_provider: QGIS data provider name .e.g.'ogr'.
+    :type data_provider: str
+    """
+    qgs_feature = QgsFeature()
+    index = QgsSpatialIndex()
+    # noinspection PyUnresolvedReferences
+    qgs_features = data_provider.getFeatures()
+    while qgs_features.nextFeature(qgs_feature):
+        index.insertFeature(qgs_feature)
+    return index
+
+
 def province_for_point(db_manager, centroid):
     """Determine which province a point falls into.
 
@@ -392,7 +410,7 @@ def province_for_point(db_manager, centroid):
     :returns: Province Name
     :rtype: str
     """
-    centroid_wkt = centroid.wellKnownText()
+    centroid_wkt = centroid.asWkt()
 
     query = "SELECT province FROM provinces WHERE "
     query += "Within(GeomFromText('%s'), Geometry)" % centroid_wkt
@@ -435,7 +453,7 @@ def map_sg_codes_to_provinces(
     intersecting_parcels = []
     sg_code_provinces = {}
 
-    sg_code_index = parcels_layer.fieldNameIndex(sg_code_field)
+    sg_code_index = parcels_layer.fields().indexFromName(sg_code_field)
     if sg_code_index == -1:
         message = 'Field "%s" not found' % sg_code_field
         raise Exception(message)
@@ -445,9 +463,9 @@ def map_sg_codes_to_provinces(
     parcel_crs = parcels_layer.crs()
     province_crs = QgsCoordinateReferenceSystem(4326)
 
-    site_parcel_transformer = QgsCoordinateTransform(site_crs, parcel_crs)
+    site_parcel_transformer = QgsCoordinateTransform(site_crs, parcel_crs, QgsProject.instance())
 
-    province_transformer = QgsCoordinateTransform(parcel_crs, province_crs)
+    province_transformer = QgsCoordinateTransform(parcel_crs, province_crs, QgsProject.instance())
 
     if not all_features:
         selected_features = site_layer.selectedFeatures()
