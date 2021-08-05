@@ -47,7 +47,7 @@ from .test.utilities_for_testing import get_qgis_app
 DATA_TEST_DIR = os.path.join(os.path.dirname(__file__), 'test', 'data')
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 
-sg_diagrams_database = os.path.join(DATA_DIR, 'sg_diagrams.sqlite')
+sg_diagrams_database = os.path.join(DATA_DIR, 'sg_diagrams.gpkg')
 
 QGIS_APP = get_qgis_app()
 
