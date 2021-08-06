@@ -22,6 +22,7 @@ DownloadDialog
 from __future__ import absolute_import
 
 from builtins import str
+
 __author__ = 'ismail@kartoza.com'
 __revision__ = '$Format:%H$'
 __date__ = '30/05/2014'
@@ -49,7 +50,6 @@ from qgis.PyQt.QtWidgets import (
     QProgressBar,
 )
 from qgis.PyQt.QtCore import QSettings
-from qgis.gui import QgsMessageBar
 
 from .utilities.resources import get_ui_class
 
@@ -60,7 +60,7 @@ from .database_manager import DatabaseManager
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 
-sg_diagrams_database = os.path.join(DATA_DIR, 'sg_diagrams.sqlite')
+sg_diagrams_database = os.path.join(DATA_DIR, 'sg_diagrams.gpkg')
 
 FORM_CLASS = get_ui_class('sg_downloader_base.ui')
 

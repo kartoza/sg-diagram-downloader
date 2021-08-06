@@ -56,6 +56,7 @@ class DatabaseManager(object):
         :type spatialite_path: str
         """
         self.db_connection = db.connect(spatialite_path)
+        self.db_connection.enable_load_extension(True)
         self.db_cursor = self.db_connection.cursor()
 
     def execute_query(self, query):
@@ -70,6 +71,7 @@ class DatabaseManager(object):
         :raise: DatabaseException
         """
         try:
+            self.db_cursor.execute("SELECT load_extension('mod_spatialite')")
             result = self.db_cursor.execute(query)
             return result
         except db.Error as e:

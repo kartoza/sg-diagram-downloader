@@ -69,7 +69,7 @@ from bs4 import BeautifulSoup
 # pylint: enable=F0401
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
-SG_DIAGRAM_SQLITE3 = os.path.join(DATA_DIR, 'sg_diagrams.sqlite')
+SG_DIAGRAM_SQLITE3 = os.path.join(DATA_DIR, 'sg_diagrams.gpkg')
 PROVINCE_NAMES = [
     'Eastern Cape',
     'KwaZulu-Natal',

@@ -45,7 +45,7 @@ class SGMapTool(QgsMapTool):
 
         self.restore_state()
 
-        sg_diagrams_database = os.path.join(DATA_DIR, 'sg_diagrams.sqlite')
+        sg_diagrams_database = os.path.join(DATA_DIR, 'sg_diagrams.gpkg')
 
         self.db_manager = DatabaseManager(sg_diagrams_database)
 
@@ -166,7 +166,7 @@ class SGMapTool(QgsMapTool):
         province = province_for_point(self.db_manager, place)
 
         report = ''
-        sg_diagrams_database = os.path.join(DATA_DIR, 'sg_diagrams.sqlite')
+        sg_diagrams_database = os.path.join(DATA_DIR, 'sg_diagrams.gpkg')
         data_manager = DatabaseManager(sg_diagrams_database)
 
         i = 0

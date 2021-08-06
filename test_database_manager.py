@@ -32,7 +32,7 @@ import os
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 
-sg_diagrams_database = os.path.join(DATA_DIR, 'sg_diagrams.sqlite')
+sg_diagrams_database = os.path.join(DATA_DIR, 'sg_diagrams.gpkg')
 
 
 class TestDatabaseManager(unittest.TestCase):

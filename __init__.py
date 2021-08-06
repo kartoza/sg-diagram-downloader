@@ -39,7 +39,7 @@ LOG_FILE_PATH = '/tmp/sg-download/log.log'
 
 SENTRY_URL = (
     'http://9a83c384bc0f476a9ba80958704383a8:'
-    'df90821aa62e42868bbe0b40a17d24d5@sentry.linfiniti.com/11')
+    'df90821aa62e42868bbe0b40a17d24d5@sentry.kartoza.com/11')
 custom_logging.setup_logger(SENTRY_URL)
 
 

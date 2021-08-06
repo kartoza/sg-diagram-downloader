@@ -33,6 +33,7 @@ import webbrowser
 # this import required to enable PyQt API v2
 # do it before Qt imports
 import qgis  # NOQA pylint: disable=unused-import
+from PyQt5.QtWidgets import QDialogButtonBox
 from qgis.PyQt import QtGui
 from qgis.PyQt.QtWidgets import QDialog
 
@@ -58,13 +59,13 @@ class LogDialog(QDialog, FORM_CLASS):
         # self.<objectname>, and you can use autoconnect slots - see
         # http://qt-project.org/doc/qt-4.8/designer-using-a-ui-file.html
         # #widgets-and-dialogs-with-auto-connect
-        QtGui.QDialog.__init__(self, parent)
+        QDialog.__init__(self, parent)
         self.iface = iface
         self.setupUi(self)
         self.log = ''
         self.log_path = ''
 
-        open_button = self.button_box.button(QtGui.QDialogButtonBox.Open)
+        open_button = self.button_box.button(QDialogButtonBox.Open)
         open_button.clicked.connect(self.open_log)
 
     def set_log(self, log, log_path):
