@@ -60,7 +60,7 @@ from .database_manager import DatabaseManager
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 
-sg_diagrams_database = os.path.join(DATA_DIR, 'sg_diagrams.gpkg')
+sg_diagrams_database = os.path.join(DATA_DIR, 'sg_diagrams.sqlite')
 
 FORM_CLASS = get_ui_class('sg_downloader_base.ui')
 

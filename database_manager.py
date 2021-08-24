@@ -33,7 +33,7 @@ from .sg_exceptions import DatabaseException
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 
 REGIONAL_OFFICES_SQLITE3 = os.path.join(
-    DATA_DIR, 'sg_regional_offices.sqlite3')
+    DATA_DIR, 'sg_diagrams.sqlite')
 
 
 class DatabaseManager(object):
