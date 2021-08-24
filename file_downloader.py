@@ -12,6 +12,8 @@ Contact : ole.moller.nielsen@gmail.com
 
 """
 
+from builtins import str
+from builtins import object
 __author__ = 'akbargumbira@gmail.com'
 __revision__ = '$Format:%H$'
 __date__ = '16/03/2014'
@@ -20,9 +22,9 @@ __copyright__ = ('Copyright 2012, Australia Indonesia Facility for '
 
 
 # noinspection PyPackageRequirements
-from PyQt4.QtCore import QCoreApplication, QFile, QUrl, QByteArray
+from qgis.PyQt.QtCore import QCoreApplication, QFile, QUrl, QByteArray
 # noinspection PyPackageRequirements
-from PyQt4.QtNetwork import QNetworkRequest, QNetworkReply
+from qgis.PyQt.QtNetwork import QNetworkRequest, QNetworkReply
 
 
 class FileDownloader(object):

@@ -20,6 +20,9 @@ diagrams.
  *                                                                         *
  ***************************************************************************/
 """
+from __future__ import absolute_import
+
+from builtins import object
 
 __author__ = 'ismail@kartoza.com'
 __revision__ = '$Format:%H$'
@@ -32,15 +35,16 @@ import logging
 # Import the PyQt and QGIS libraries
 # this import required to enable PyQt API v2
 # do it before Qt imports
-import qgis  # NOQA pylint: disable=unused-import
 
-from PyQt4.QtCore import QCoreApplication
-from PyQt4.QtGui import QAction, QIcon
+from qgis.PyQt.QtCore import QCoreApplication
+from qgis.PyQt.QtWidgets import QAction
+from qgis.PyQt.QtGui import QIcon
 from qgis.core import QgsVectorLayer
 
+
 # Import the code for the dialog
-from sg_downloader import DownloadDialog
-from utilities.resources import resources_path
+from .sg_downloader import DownloadDialog
+from .utilities.resources import resources_path
 
 # from pydev import pydevd  # pylint: disable=F0401
 
@@ -49,7 +53,7 @@ MENU_RUN_LABEL = u'Download Surveyor General Diagram'
 LOGGER = logging.getLogger('QGIS')
 
 
-class SGDiagramDownloader:
+class SGDiagramDownloader(object):
     """QGIS Plugin Implementation."""
 
     def __init__(self, iface):

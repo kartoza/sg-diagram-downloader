@@ -1,5 +1,7 @@
 """Helper classes for tests."""
 
+from builtins import str
+from builtins import object
 import copy
 import functools
 import unittest
@@ -501,7 +503,7 @@ class XMLTreeBuilderSmokeTest(object):
         markup = '<rss xmlns:dc="foo"><dc:creator>b</dc:creator><dc:date>2012-07-02T20:33:42Z</dc:date><dc:rights>c</dc:rights><image>d</image></rss>'
         soup = self.soup(markup)
         self.assertEqual(
-            unicode(soup.rss), markup)
+            str(soup.rss), markup)
 
     def test_docstring_includes_correct_encoding(self):
         soup = self.soup("<root/>")
@@ -532,17 +534,17 @@ class XMLTreeBuilderSmokeTest(object):
     def test_closing_namespaced_tag(self):
         markup = '<p xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:date>20010504</dc:date></p>'
         soup = self.soup(markup)
-        self.assertEqual(unicode(soup.p), markup)
+        self.assertEqual(str(soup.p), markup)
 
     def test_namespaced_attributes(self):
         markup = '<foo xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><bar xsi:schemaLocation="http://www.example.com"/></foo>'
         soup = self.soup(markup)
-        self.assertEqual(unicode(soup.foo), markup)
+        self.assertEqual(str(soup.foo), markup)
 
     def test_namespaced_attributes_xml_namespace(self):
         markup = '<foo xml:lang="fr">bar</foo>'
         soup = self.soup(markup)
-        self.assertEqual(unicode(soup.foo), markup)
+        self.assertEqual(str(soup.foo), markup)
 
 class HTML5TreeBuilderSmokeTest(HTMLTreeBuilderSmokeTest):
     """Smoke test for a tree builder that supports HTML5."""

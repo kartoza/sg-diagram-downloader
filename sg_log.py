@@ -19,6 +19,7 @@ LogDialog
  *                                                                         *
  ***************************************************************************/
 """
+from __future__ import absolute_import
 
 __author__ = 'ismail@kartoza.com'
 __revision__ = '$Format:%H$'
@@ -32,9 +33,11 @@ import webbrowser
 # this import required to enable PyQt API v2
 # do it before Qt imports
 import qgis  # NOQA pylint: disable=unused-import
-from PyQt4 import QtGui
+from PyQt5.QtWidgets import QDialogButtonBox
+from qgis.PyQt import QtGui
+from qgis.PyQt.QtWidgets import QDialog
 
-from utilities.resources import get_ui_class
+from .utilities.resources import get_ui_class
 
 FORM_CLASS = get_ui_class('sg_log_base.ui')
 
@@ -42,7 +45,7 @@ LOGGER = logging.getLogger('QGIS')
 
 
 # noinspection PyArgumentList
-class LogDialog(QtGui.QDialog, FORM_CLASS):
+class LogDialog(QDialog, FORM_CLASS):
     """GUI for downloading SG Plans."""
     def __init__(self, iface, parent=None):
         """Constructor.
@@ -56,13 +59,13 @@ class LogDialog(QtGui.QDialog, FORM_CLASS):
         # self.<objectname>, and you can use autoconnect slots - see
         # http://qt-project.org/doc/qt-4.8/designer-using-a-ui-file.html
         # #widgets-and-dialogs-with-auto-connect
-        QtGui.QDialog.__init__(self, parent)
+        QDialog.__init__(self, parent)
         self.iface = iface
         self.setupUi(self)
         self.log = ''
         self.log_path = ''
 
-        open_button = self.button_box.button(QtGui.QDialogButtonBox.Open)
+        open_button = self.button_box.button(QDialogButtonBox.Open)
         open_button.clicked.connect(self.open_log)
 
     def set_log(self, log, log_path):

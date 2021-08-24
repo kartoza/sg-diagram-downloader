@@ -5,7 +5,7 @@ import os
 import logging
 
 import qgis  # NOQA pylint: disable=unused-import
-from PyQt4 import uic
+from qgis.PyQt import uic
 
 LOGGER = logging.getLogger('SG-Downloader')
 

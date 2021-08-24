@@ -21,17 +21,19 @@ diagrams.
  ***************************************************************************/
  This script initializes the plugin, making it known to QGIS.
 """
+from __future__ import absolute_import
+
 # Import the PyQt and QGIS libraries
 # this import required to enable PyQt API v2
-import qgis  # pylint: disable=W0611
 import os
 import sys
+
+from . import custom_logging  # pylint: disable=relative-import
+
 THIRD_PARTY_DIR = os.path.abspath(
     os.path.join(os.path.dirname(__file__), 'third_party'))
 if THIRD_PARTY_DIR not in sys.path:
     sys.path.append(THIRD_PARTY_DIR)
-
-import custom_logging  # pylint: disable=relative-import
 
 LOG_FILE_PATH = '/tmp/sg-download/log.log'
 
@@ -45,6 +47,6 @@ custom_logging.setup_logger(SENTRY_URL)
 def classFactory(iface):  # pylint: disable=invalid-name
     """load SGDiagramDownloader class from file SGDiagramDownloader."""
     # pylint: disable=relative-import
-    from plugin import SGDiagramDownloader
+    from .plugin import SGDiagramDownloader
     # pylint: enable=relative-import
     return SGDiagramDownloader(iface)
