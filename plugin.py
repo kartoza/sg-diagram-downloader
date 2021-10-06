@@ -20,6 +20,9 @@ diagrams.
  *                                                                         *
  ***************************************************************************/
 """
+from __future__ import absolute_import
+
+from builtins import object
 
 __author__ = 'ismail@kartoza.com'
 __revision__ = '$Format:%H$'
@@ -32,28 +35,16 @@ import logging
 # Import the PyQt and QGIS libraries
 # this import required to enable PyQt API v2
 # do it before Qt imports
-import qgis  # pylint: disable=W0611
 
-from PyQt4.QtCore import (
-    Qt,
-    QSettings,
-    QTranslator,
-    qVersion,
-    QCoreApplication,
-    QUrl)
-from PyQt4.QtGui import (
-    QAction,
-    QIcon,
-    QProgressBar)
-from qgis.core import QgsMapLayerRegistry, QgsVectorLayer
-from qgis.gui import QgsMessageBar
+from qgis.PyQt.QtCore import QCoreApplication
+from qgis.PyQt.QtWidgets import QAction
+from qgis.PyQt.QtGui import QIcon
+from qgis.core import QgsVectorLayer
 
-from sg_action import SGAction
 
-# Initialize Qt resources from file resources.py
-import resources_rc
 # Import the code for the dialog
-from sg_downloader import DownloadDialog
+from .sg_downloader import DownloadDialog
+from .utilities.resources import resources_path
 
 # from pydev import pydevd  # pylint: disable=F0401
 
@@ -62,7 +53,7 @@ MENU_RUN_LABEL = u'Download Surveyor General Diagram'
 LOGGER = logging.getLogger('QGIS')
 
 
-class SGDiagramDownloader:
+class SGDiagramDownloader(object):
     """QGIS Plugin Implementation."""
 
     def __init__(self, iface):
@@ -197,7 +188,7 @@ class SGDiagramDownloader:
     def initGui(self):
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
         self.menu = u'Surveyor General Diagram Downloader'
-        icon_path = ':/plugins/SGDiagramDownloader/icon.svg'
+        icon_path = resources_path('icon.svg')
         self.download_dialog = self.add_action(
             icon_path,
             text=self.tr(u'Download Surveyor General Diagram',),

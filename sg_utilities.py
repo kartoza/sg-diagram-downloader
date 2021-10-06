@@ -19,6 +19,12 @@ Utilities for Surveyor General Diagram
  *                                                                         *
  ***************************************************************************/
 """
+from __future__ import absolute_import
+
+from future import standard_library
+
+standard_library.install_aliases()
+from builtins import str
 
 __author__ = 'ismail@kartoza.com'
 __revision__ = '$Format:%H$'
@@ -29,22 +35,23 @@ import os
 import re
 
 from qgis.core import (
+    QgsCoordinateReferenceSystem,
     QgsCoordinateTransform,
-    QgsVectorLayer,
     QgsFeature,
     QgsFeatureRequest,
-    QgsSpatialIndex,
+    QgsProject,
     QgsRectangle,
-    QgsCoordinateReferenceSystem)
+    QgsSpatialIndex,
+    )
 
-from PyQt4.QtNetwork import QNetworkAccessManager
-from PyQt4.QtCore import QSettings
+from PyQt5.QtNetwork import QNetworkAccessManager
+from qgis.PyQt.QtCore import QSettings
 
-import urllib
-import sys
-from urlparse import urlparse
-from file_downloader import FileDownloader
-from sg_exceptions import (
+import urllib.request, urllib.parse, urllib.error
+from urllib.parse import urlparse
+from .definitions import BASE_URL
+from .file_downloader import FileDownloader
+from .sg_exceptions import (
     DownloadException,
     DatabaseException,
     UrlException,
@@ -52,22 +59,17 @@ from sg_exceptions import (
     ParseException,
     NotInSouthAfricaException
 )
-from proxy import get_proxy
-from database_manager import DatabaseManager
+from .proxy import get_proxy
+from .custom_logging import LOGGER
 
-third_party_path = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), 'third_party'))
-if third_party_path not in sys.path:
-    sys.path.append(third_party_path)
 # pylint: disable=F0401
 # noinspection PyUnresolvedReferences
 from bs4 import BeautifulSoup
+
 # pylint: enable=F0401
 
-from custom_logging import LOGGER
-
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
-SG_DIAGRAM_SQLITE3 = os.path.join(DATA_DIR, 'sg_diagrams.sqlite')
+SG_DIAGRAM_SQLITE3 = os.path.join(DATA_DIR, 'sg_diagrams.gpkg')
 PROVINCE_NAMES = [
     'Eastern Cape',
     'KwaZulu-Natal',
@@ -113,8 +115,8 @@ def get_office(db_manager, region_code=None, province=None):
     """
     try:
         query = (
-            "SELECT office, office_no, typology FROM regional_office WHERE "
-            "province='%s' AND region_code='%s'" % (province, region_code))
+                "SELECT office, office_no, typology FROM regional_office WHERE "
+                "province='%s' AND region_code='%s'" % (province, region_code))
 
         result = db_manager.fetch_one(query)
 
@@ -133,7 +135,7 @@ def is_valid_sg_code(value):
     :rtype: bool
     """
     # Handling unicode input. Found on Windows.
-    if type(value) == unicode:
+    if type(value) == str:
         value = str(value)
 
     # False if value is not a string or value is not True
@@ -181,7 +183,7 @@ def construct_url(db_manager, sg_code=None, province_name=None):
     if province_name not in PROVINCE_NAMES:
         raise NotInSouthAfricaException
 
-    base_url = 'http://csg.dla.gov.za/esio/listdocument.jsp?'
+    base_url = BASE_URL + 'esio/listdocument.jsp?'
     reg_division = sg_code[:8]
 
     try:
@@ -249,7 +251,7 @@ def download_from_url(url, output_directory, filename=None, use_cache=True):
     # Set Proxy in webpage
     proxy = get_proxy()
     network_manager = QNetworkAccessManager()
-    if not proxy is None:
+    if proxy is not None:
         network_manager.setProxy(proxy)
 
     # Download Process
@@ -280,9 +282,9 @@ def parse_download_page(download_page_url):
     :rtype: list
     """
     download_urls = []
-    url_prefix = 'http://csg.dla.gov.za/esio/'
+    url_prefix = BASE_URL + 'esio/'
     try:
-        html = urllib.urlopen(download_page_url)
+        html = urllib.request.urlopen(download_page_url)
         download_page_soup = BeautifulSoup(html)
         urls = download_page_soup.find_all('a')
         for url in urls:
@@ -333,15 +335,15 @@ def download_sg_diagram(
             UrlException,
             NotInSouthAfricaException) as e:
         report += (
-            'Failed: Downloading SG code %s for province %s because of %s\n' %
-            (sg_code, province_name, e.reason))
+                'Failed: Downloading SG code %s for province %s because of %s\n' %
+                (sg_code, province_name, e.reason))
         return report
     try:
         download_links = parse_download_page(download_page)
     except ParseException as e:
         report += (
-            'Failed: Downloading SG code %s for province %s because of %s\n' %
-            (sg_code, province_name, e.reason))
+                'Failed: Downloading SG code %s for province %s because of %s\n' %
+                (sg_code, province_name, e.reason))
         return report
 
     output_directory = os.path.join(output_directory, sg_code)
@@ -408,7 +410,7 @@ def province_for_point(db_manager, centroid):
     :returns: Province Name
     :rtype: str
     """
-    centroid_wkt = centroid.wellKnownText()
+    centroid_wkt = centroid.asWkt()
 
     query = "SELECT province FROM provinces WHERE "
     query += "Within(GeomFromText('%s'), Geometry)" % centroid_wkt
@@ -451,7 +453,7 @@ def map_sg_codes_to_provinces(
     intersecting_parcels = []
     sg_code_provinces = {}
 
-    sg_code_index = parcels_layer.fieldNameIndex(sg_code_field)
+    sg_code_index = parcels_layer.fields().indexFromName(sg_code_field)
     if sg_code_index == -1:
         message = 'Field "%s" not found' % sg_code_field
         raise Exception(message)
@@ -461,9 +463,9 @@ def map_sg_codes_to_provinces(
     parcel_crs = parcels_layer.crs()
     province_crs = QgsCoordinateReferenceSystem(4326)
 
-    site_parcel_transformer = QgsCoordinateTransform(site_crs, parcel_crs)
+    site_parcel_transformer = QgsCoordinateTransform(site_crs, parcel_crs, QgsProject.instance())
 
-    province_transformer = QgsCoordinateTransform(parcel_crs, province_crs)
+    province_transformer = QgsCoordinateTransform(parcel_crs, province_crs, QgsProject.instance())
 
     if not all_features:
         selected_features = site_layer.selectedFeatures()
@@ -509,7 +511,7 @@ def print_progress_callback(current, maximum, message=None):
     :param message: Optional message to display in the progress bar
     :type message: str, QString
     """
-    print ('%d of %d' + str(message)) % (current, maximum)
+    print('%d of %d' + str(message)) % (current, maximum)
 
 
 def download_sg_diagrams(
@@ -558,7 +560,7 @@ def download_sg_diagrams(
     maximum = len(sg_codes_and_provinces)
     current = 0
     report = ''
-    for sg_code, province in sg_codes_and_provinces.iteritems():
+    for sg_code, province in sg_codes_and_provinces.items():
         current += 1
         message = 'Downloading SG Code %s from %s' % (sg_code, province)
         callback(current, maximum, message)
@@ -569,7 +571,7 @@ def download_sg_diagrams(
                 province,
                 output_directory,
                 callback)
-        except Exception, e:
+        except Exception as e:
             report += 'Failed to download %s %s %s\n' % (sg_code, province, e)
             LOGGER.exception(e)
 

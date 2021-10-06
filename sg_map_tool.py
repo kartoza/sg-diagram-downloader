@@ -1,12 +1,11 @@
 # coding=utf-8
 """Implementation for SG Downloader map tool."""
 
-
 # Enable SIP v2
 
-#from PyQt4.QtGui import QRegExpValidator, QValidator
-from PyQt4.QtCore import Qt, QSettings
-from PyQt4.QtGui import QProgressBar
+# from PyQt4.QtGui import QRegExpValidator, QValidator
+from PyQt5.QtCore import Qt, QSettings
+from PyQt5.QtWidgets import QProgressBar
 from qgis.core import QgsFeature, QgsFeatureRequest
 from qgis.gui import QgsMapTool, QgsMessageBar
 
@@ -21,6 +20,7 @@ from database_manager import DatabaseManager
 from sg_log import LogDialog
 import os
 from os.path import expanduser
+
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 
 
@@ -45,7 +45,7 @@ class SGMapTool(QgsMapTool):
 
         self.restore_state()
 
-        sg_diagrams_database = os.path.join(DATA_DIR, 'sg_diagrams.sqlite')
+        sg_diagrams_database = os.path.join(DATA_DIR, 'sg_diagrams.gpkg')
 
         self.db_manager = DatabaseManager(sg_diagrams_database)
 
@@ -123,7 +123,7 @@ class SGMapTool(QgsMapTool):
         place = self.toMapCoordinates(event.pos())
         rectangle = point_to_rectangle(place)
 
-        request = QgsFeatureRequest(QgsFeatureRequest.FilterRect)
+        request = QgsFeatureRequest(QgsFeatureRequest.filterRect)
         # Ensure only those features really intersecting the rect are returned
         request.setFlags(QgsFeatureRequest.ExactIntersect)
         request.setFilterRect(rectangle)
@@ -166,7 +166,7 @@ class SGMapTool(QgsMapTool):
         province = province_for_point(self.db_manager, place)
 
         report = ''
-        sg_diagrams_database = os.path.join(DATA_DIR, 'sg_diagrams.sqlite')
+        sg_diagrams_database = os.path.join(DATA_DIR, 'sg_diagrams.gpkg')
         data_manager = DatabaseManager(sg_diagrams_database)
 
         i = 0
@@ -185,7 +185,7 @@ class SGMapTool(QgsMapTool):
         try:
             write_log(report, self.log_file)
         except IOError as e:
-            print e
+            print(e)
 
         self.show_log(report, self.log_file)
 

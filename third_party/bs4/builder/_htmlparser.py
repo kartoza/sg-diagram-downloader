@@ -1,10 +1,13 @@
 """Use the HTMLParser library to parse HTML files that aren't too bad."""
 
+from future import standard_library
+standard_library.install_aliases()
+from builtins import chr
 __all__ = [
     'HTMLParserTreeBuilder',
     ]
 
-from HTMLParser import (
+from html.parser import (
     HTMLParser,
     HTMLParseError,
     )
@@ -72,8 +75,8 @@ class BeautifulSoupHTMLParser(HTMLParser):
             real_name = int(name)
 
         try:
-            data = unichr(real_name)
-        except (ValueError, OverflowError), e:
+            data = chr(real_name)
+        except (ValueError, OverflowError) as e:
             data = u"\N{REPLACEMENT CHARACTER}"
 
         self.handle_data(data)
@@ -142,7 +145,7 @@ class HTMLParserTreeBuilder(HTMLTreeBuilder):
         declared within markup, whether any characters had to be
         replaced with REPLACEMENT CHARACTER).
         """
-        if isinstance(markup, unicode):
+        if isinstance(markup, str):
             yield (markup, None, None, False)
             return
 
@@ -158,7 +161,7 @@ class HTMLParserTreeBuilder(HTMLTreeBuilder):
         parser.soup = self.soup
         try:
             parser.feed(markup)
-        except HTMLParseError, e:
+        except HTMLParseError as e:
             warnings.warn(RuntimeWarning(
                 "Python's built-in HTMLParser cannot parse the given document. This is not a bug in Beautiful Soup. The best solution is to install an external parser (lxml or html5lib), and use Beautiful Soup with that parser. See http://www.crummy.com/software/BeautifulSoup/bs4/doc/#installing-a-parser for help."))
             raise e

@@ -1,7 +1,8 @@
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
-
+*.gpkg-shm
+*.gpkg-wal
 # C extensions
 *.so
 

@@ -8,12 +8,7 @@ Custom logging setup.
      (at your option) any later version.
 
 """
-
-__author__ = 'tim@kartoza.com'
-__revision__ = '$Format:%H$'
-__date__ = '29/01/2011'
-__copyright__ = 'Copyright 2012, Australia Indonesia Facility for '
-__copyright__ += 'Disaster Reduction'
+from __future__ import print_function
 
 import os
 import sys
@@ -22,19 +17,25 @@ from datetime import date
 import getpass
 from tempfile import mkstemp
 
-from PyQt4 import QtCore
-
 third_party_path = os.path.abspath(
     os.path.join(os.path.dirname(__file__), 'third_party'))
 if third_party_path not in sys.path:
     sys.path.append(third_party_path)
+
 # pylint: disable=F0401
 # noinspection PyUnresolvedReferences
-from raven.handlers.logging import SentryHandler
+from raven.handlers.logging import SentryHandler  # noqa
 # noinspection PyUnresolvedReferences
-from raven import Client
+from raven import Client  # noqa
+
 # pylint: enable=F0401
-LOGGER = logging.getLogger('QGIS')
+LOGGER = logging.getLogger('SG-Downloader')
+
+__author__ = 'tim@kartoza.com'
+__revision__ = '$Format:%H$'
+__date__ = '29/01/2011'
+__copyright__ = 'Copyright 2012, Australia Indonesia Facility for '
+__copyright__ += 'Disaster Reduction'
 
 
 def log_file_path():
@@ -46,6 +47,12 @@ def log_file_path():
     log_temp_dir = temp_dir('logs')
     path = os.path.join(log_temp_dir, 'sg-diagram-downloader.log')
     return path
+
+
+def write_log_message(message, tag, level):
+    log_path = log_file_path()
+    with open(log_path, 'a') as logfile:
+        logfile.write('{}({}): {}'.format(tag, level, message))
 
 
 class QgsLogHandler(logging.Handler):
@@ -66,17 +73,17 @@ class QgsLogHandler(logging.Handler):
             # Check logging.LogRecord properties for lots of other goodies
             # like line number etc. you can get from the log message.
             # noinspection PyCallByClass
-            QgsMessageLog.logMessage(message, 'QGIS', 0)
-        #Make sure it doesn't crash if using without QGIS
+            QgsMessageLog.instance().messageReceived.connect(write_log_message())
+            QgsMessageLog.logMessage("Your plugin code has been executed correctly",
+                                     'SG_Diagram Downloader', level=QgsMessageLog.INFO)
+
+        # Make sure it doesn't crash if using without QGIS
         except ImportError:
             pass
         except MemoryError:
-            message = (
-                'Due to memory limitations on this machine, the full log '
-                'cannot be handled.')
-            print message
             # noinspection PyUnboundLocalVariable
-            QgsMessageLog.logMessage(message, 'QGIS', 0)
+            QgsMessageLog.logMessage("Due to memory limitations on this machine, the full log, cannot be handled",
+                                     level=QgsMessageLog.WARNING)
 
 
 def add_logging_handler_once(logger, handler):
@@ -146,7 +153,7 @@ def setup_logger(sentry_url, log_file=None):
     formatter = logging.Formatter(
         '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     # create syslog handler which logs even debug messages
-    log_temp_dir = temp_dir('logs')
+    # log_temp_dir = temp_dir('logs')
     path = log_file_path()
     if log_file is None:
         file_handler = logging.FileHandler(path)
@@ -211,7 +218,7 @@ def temp_dir(sub_dir='work'):
         # Ensure that the dir is world writable
         # Umask sets the new mask and returns the old
         old_mask = os.umask(0000)
-        os.makedirs(temp_path, 0777)
+        os.makedirs(temp_path, 0o777)
         # Reinstate the old mask for tmp
         os.umask(old_mask)
     return temp_path

@@ -19,22 +19,24 @@ Database manager for Surveyor General Diagram
  *                                                                         *
  ***************************************************************************/
 """
+from __future__ import absolute_import
+from builtins import object
 __author__ = 'ismail@kartoza.com'
 __revision__ = '$Format:%H$'
 __date__ = '24/06/2014'
 __copyright__ = ''
 
-from pyspatialite import dbapi2 as db
+from sqlite3 import dbapi2 as db
 import os
-from sg_exceptions import DatabaseException
+from .sg_exceptions import DatabaseException
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 
 REGIONAL_OFFICES_SQLITE3 = os.path.join(
-    DATA_DIR, 'sg_regional_offices.sqlite3')
+    DATA_DIR, 'sg_diagrams.sqlite')
 
 
-class DatabaseManager():
+class DatabaseManager(object):
     """Class for handling database connections."""
     def __init__(self, spatialite_path):
         """Init method.
@@ -54,6 +56,7 @@ class DatabaseManager():
         :type spatialite_path: str
         """
         self.db_connection = db.connect(spatialite_path)
+        self.db_connection.enable_load_extension(True)
         self.db_cursor = self.db_connection.cursor()
 
     def execute_query(self, query):
@@ -68,6 +71,7 @@ class DatabaseManager():
         :raise: DatabaseException
         """
         try:
+            self.db_cursor.execute("SELECT load_extension('mod_spatialite')")
             result = self.db_cursor.execute(query)
             return result
         except db.Error as e:
