@@ -11,7 +11,7 @@ email=gavin@kartoza.com
 ; Optional items:
 experimental=False
 icon=icon.png
-about=Sponsored by SpatialMatrix
+about=Kirchhoff Surveyors
 homepage=https://github.com/kartoza/sg-diagram-downloader/
 tracker=https://github.com/kartoza/sg-diagram-downloader/issues
 repository=https://github.com/kartoza/sg-diagram-downloader/
