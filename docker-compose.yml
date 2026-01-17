@@ -1,0 +1,18 @@
+version: '3'
+
+services:
+  qgis-testing-environment:
+    image: "${IMAGE:-qgis/qgis}:${QGIS_VERSION_TAG:-release-3_34}"
+    volumes:
+      - ./build/sg_diagrams:/root/.local/share/QGIS/QGIS3/profiles/default/python/plugins/sg_diagrams
+    environment:
+      - DISPLAY=:99
+      - ON_TRAVIS=${ON_TRAVIS:-false}
+      - MUTE_LOGS=${MUTE_LOGS:-false}
+      - WITH_PYTHON_PEP=${WITH_PYTHON_PEP:-true}
+    command: >
+      sh -c "
+        Xvfb :99 -screen 0 1024x768x24 &
+        sleep 3 &&
+        tail -f /dev/null
+      "

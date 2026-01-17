@@ -48,6 +48,7 @@ coverage.xml
 
 # Django stuff:
 *.log
+!PROMPT.log
 *.pot
 
 # Sphinx documentation
@@ -62,3 +63,23 @@ pydev
 *.qm
 diagrams
 *.pyc
+
+# Nix/direnv
+.direnv/
+.venv/
+result
+result-*
+.pip-install.log
+
+# IDE
+.vscode/
+*.swp
+*.swo
+.nvimrc.local
+
+# Environment
+.env
+.env.local
+
+# Flake lock (optional - some projects track this)
+# flake.lock

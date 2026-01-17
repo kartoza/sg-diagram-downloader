@@ -1,0 +1,15 @@
+bandit==1.8.6
+black==24.4.0
+flake8==6.0.0
+isort==6.0.1
+click==8.0.4
+debugpy==1.8.1
+defusedxml==0.7.1
+httpx==0.28.1
+pytest==8.1.1
+pytest-qt==4.4.0
+PyYAML==6.0.2
+requests==2.32.4
+rich==14.2.0
+toml==0.10.2
+typer==0.4.0

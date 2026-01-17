@@ -1,0 +1,16 @@
+# Bandit configuration file for SG Diagram Downloader security scanning
+# https://bandit.readthedocs.io/en/latest/config.html
+
+exclude_dirs:
+  - ./test
+  - ./test/**
+
+# Skip B101 (assert statements) as they are legitimate in test files
+skips:
+  - B101
+
+# Note: Security best practices:
+# - Validate all external input
+# - Use parameterized queries for database operations
+# - Avoid shell injection vulnerabilities
+# - Use safe XML parsing (defusedxml where applicable)
