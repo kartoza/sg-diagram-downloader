@@ -1,1 +1,3 @@
 2026-01-17: I need to modernise the repo to make the developer experience comparable to ../GEEST This should include flake support, launcher scripts, precommit checks, automated packaging on release and other github actions etc.
+
+2026-01-17: I want you to build a small utility function that gets all of the api / web service endpoints used by the downloader, and then all of the available api enpoints and maps out which end points are used but no longer available, not used, used and still available
