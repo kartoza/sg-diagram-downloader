@@ -19,9 +19,6 @@ DownloadDialog
  *                                                                         *
  ***************************************************************************/
 """
-from __future__ import absolute_import
-
-from builtins import str
 
 __author__ = 'ismail@kartoza.com'
 __revision__ = '$Format:%H$'
@@ -60,7 +57,7 @@ from .database_manager import DatabaseManager
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 
-sg_diagrams_database = os.path.join(DATA_DIR, 'sg_diagrams.sqlite')
+sg_diagrams_database = os.path.join(DATA_DIR, 'sg_diagrams.gpkg')
 
 FORM_CLASS = get_ui_class('sg_downloader_base.ui')
 
@@ -98,6 +95,17 @@ class DownloadDialog(QDialog, FORM_CLASS):
         self.database_manager = DatabaseManager(sg_diagrams_database)
 
         self.restore_state()
+
+    def cleanup(self):
+        """Clean up resources when done."""
+        if self.database_manager is not None:
+            self.database_manager.close()
+            self.database_manager = None
+
+    def reject(self):
+        """Handle dialog cancel/close."""
+        self.cleanup()
+        super(DownloadDialog, self).reject()
 
     def populate_combo_box(self):
         """Populate the combo boxes with all polygon layers loaded in QGIS."""
@@ -194,7 +202,7 @@ class DownloadDialog(QDialog, FORM_CLASS):
             self.show_no_selection_warning()
             return
 
-        if self.output_directory is '' or not os.path.exists(
+        if not self.output_directory or not os.path.exists(
                 self.output_directory):
             self.show_output_directory_information_message()
             return
@@ -212,7 +220,7 @@ class DownloadDialog(QDialog, FORM_CLASS):
             message_bar, Qgis.Info)
         self.message_bar = message_bar
         self.save_state()
-        self.close()
+        self.hide()  # Use hide() instead of close() to avoid triggering reject()
 
         def progress_callback(current, maximum, message=None):
             """GUI based callback implementation for showing progress.
@@ -240,6 +248,9 @@ class DownloadDialog(QDialog, FORM_CLASS):
             self.output_directory,
             self.all_features,
             callback=progress_callback)
+
+        # Clean up database connection
+        self.cleanup()
 
         # Get rid of the message bar again.
         self.iface.messageBar().popWidget(message_bar)
@@ -307,9 +318,9 @@ class DownloadDialog(QDialog, FORM_CLASS):
             'sg-diagram-downloader/log_file', default_log_file, type=str))
         self.line_edit_log_file.setText(previous_log_file)
 
-        previous_all_features = bool(previous_settings.value(
-            'sg-diagram-downloader/all_features', True, type=bool))
-        self.selected_sites_only.setChecked(not previous_all_features)
+        # Always default to selected features only (checked) for safety
+        # to avoid accidentally downloading for all features
+        self.selected_sites_only.setChecked(True)
 
         self.get_user_options()
 
@@ -318,8 +329,6 @@ class DownloadDialog(QDialog, FORM_CLASS):
         settings = QSettings()
         settings.setValue(
             'sg-diagram-downloader/output_directory', self.output_directory)
-        settings.setValue(
-            'sg-diagram-downloader/all_features', self.all_features)
         settings.setValue(
             'sg-diagram-downloader/log_file', self.log_file)
 

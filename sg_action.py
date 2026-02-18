@@ -1,6 +1,5 @@
 # coding=utf-8
 """Custom QAction implementation."""
-from __future__ import absolute_import
 
 from qgis.PyQt.QtWidgets import QAction
 from qgis.core import QgsMapLayer, QgsWkbTypes

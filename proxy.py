@@ -14,7 +14,7 @@ email : motta _dot_ luiz _at_ gmail.com
 
 """
 from qgis.PyQt.QtCore import QSettings, QT_VERSION
-from PyQt5.QtNetwork import QNetworkProxy
+from qgis.PyQt.QtNetwork import QNetworkProxy
 
 
 def get_proxy():

@@ -8,7 +8,6 @@ Custom logging setup.
      (at your option) any later version.
 
 """
-from __future__ import print_function
 
 import os
 import sys
@@ -22,13 +21,23 @@ third_party_path = os.path.abspath(
 if third_party_path not in sys.path:
     sys.path.append(third_party_path)
 
-# pylint: disable=F0401
-# noinspection PyUnresolvedReferences
-from raven.handlers.logging import SentryHandler  # noqa
-# noinspection PyUnresolvedReferences
-from raven import Client  # noqa
+# Sentry imports are optional - only import if Sentry is enabled
+SENTRY_AVAILABLE = False
+SentryHandler = None
+Client = None
 
-# pylint: enable=F0401
+if not os.environ.get('SG_DOWNLOADER_SENTRY_DISABLED'):
+    try:
+        # pylint: disable=F0401
+        # noinspection PyUnresolvedReferences
+        from raven.handlers.logging import SentryHandler  # noqa
+        # noinspection PyUnresolvedReferences
+        from raven import Client  # noqa
+        # pylint: enable=F0401
+        SENTRY_AVAILABLE = True
+    except ImportError:
+        pass
+
 LOGGER = logging.getLogger('SG-Downloader')
 
 __author__ = 'tim@kartoza.com'
@@ -166,19 +175,24 @@ def setup_logger(sentry_url, log_file=None):
 
     qgis_handler = QgsLogHandler()
 
-    # Sentry handler - this is optional hence the localised import
-    # It will only log if pip install raven. If raven is available
-    # logging messages will be sent to the sentry host.
-    # We will only log exceptions. You need to either:
-    #  * Set env var 'SENTRY' present (value can be anything)
-    #  * Enable the 'plugins/use_sentry' QSettings option
-    # before this will be enabled.
-    client = Client(sentry_url)
-    sentry_handler = SentryHandler(client)
-    sentry_handler.setFormatter(formatter)
-    sentry_handler.setLevel(logging.ERROR)
-    if add_logging_handler_once(logger, sentry_handler):
-        logger.debug('Sentry logging enabled')
+    # Sentry handler - this is optional
+    # It will only log if raven is available and Sentry is not disabled.
+    # To disable Sentry, set the environment variable:
+    #   SG_DOWNLOADER_SENTRY_DISABLED=1
+    # This is useful for debugging to avoid hangs from Sentry connections.
+    if SENTRY_AVAILABLE and sentry_url:
+        try:
+            client = Client(sentry_url)
+            sentry_handler = SentryHandler(client)
+            sentry_handler.setFormatter(formatter)
+            sentry_handler.setLevel(logging.ERROR)
+            if add_logging_handler_once(logger, sentry_handler):
+                logger.debug('Sentry logging enabled')
+        except Exception as e:
+            logger.debug('Failed to initialize Sentry: %s' % str(e))
+    else:
+        logger.debug('Sentry logging disabled')
+
     # Set formatters
     file_handler.setFormatter(formatter)
     console_handler.setFormatter(formatter)

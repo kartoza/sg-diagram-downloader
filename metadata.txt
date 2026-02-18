@@ -1,10 +1,9 @@
-
 [general]
 name=SG Diagram Downloader
 description=A tool for QGIS that will download SG (South African Surveyor General) diagrams.
-qgisMinimumVersion=2.99
+qgisMinimumVersion=3.34
 qgisMaximumVersion=3.99
-version=3.2
+version=3.3
 author=Kartoza
 email=gavin@kartoza.com
 
@@ -15,6 +14,19 @@ about=Sponsored by Kirchhoff Surveyors
 homepage=https://github.com/kartoza/sg-diagram-downloader/
 tracker=https://github.com/kartoza/sg-diagram-downloader/issues
 repository=https://github.com/kartoza/sg-diagram-downloader/
+
+changelog=3.3
+    - Made Sentry error reporting optional via SG_DOWNLOADER_SENTRY_DISABLED env var
+    - Sentry automatically disabled in debug mode to prevent hangs
+    - Added provinces layer to GeoPackage with proper schema (geom column, EPSG:4326)
+    - Restored regional_office table with 14,067 region code mappings
+    - Fixed province lookup to use caching and pre-validation to avoid GDAL errors
+    - Added coordinate-based fallback for province detection when layer unavailable
+    - Improved logging to write to both QGIS message log and log file
+    - Dialog now always defaults to "selected features only" for safety
+    - Persist output directory and log file settings between sessions
+    - Added data/README.md documenting GeoPackage schema requirements
+    - Modernized developer experience with Nix flake support
 
 # deprecated flag (applies to the whole plugin, not just a single version)
 deprecated=False

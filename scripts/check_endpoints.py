@@ -11,11 +11,15 @@ This script:
 
 Usage:
     python scripts/check_endpoints.py
+
+    # Or as a module:
+    from scripts.check_endpoints import get_endpoint_mapping
+    mapping = get_endpoint_mapping()
 """
 
 import sys
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 from typing import Optional
 
@@ -32,6 +36,15 @@ class EndpointStatus(Enum):
     UNKNOWN = "unknown"
 
 
+class EndpointCategory(Enum):
+    """Category for endpoint mapping."""
+
+    USED_AND_AVAILABLE = "used_and_available"
+    USED_BUT_UNAVAILABLE = "used_but_unavailable"
+    NOT_USED_BUT_AVAILABLE = "not_used_but_available"
+    NOT_USED_AND_UNAVAILABLE = "not_used_and_unavailable"
+
+
 @dataclass
 class Endpoint:
     """Represents an API endpoint."""
@@ -41,6 +54,8 @@ class Endpoint:
     method: str = "GET"
     description: str = ""
     used_in_code: bool = True
+    source_file: str = ""
+    source_line: Optional[int] = None
     test_params: Optional[dict] = None
 
 
@@ -50,24 +65,68 @@ class EndpointResult:
 
     endpoint: Endpoint
     status: EndpointStatus
+    category: Optional[EndpointCategory] = None
     status_code: Optional[int] = None
     response_time_ms: Optional[float] = None
     error_message: Optional[str] = None
 
 
-# Define all endpoints used by the SG Diagram Downloader
+@dataclass
+class EndpointMapping:
+    """Complete mapping of all endpoints with their status and availability."""
+
+    used_and_available: list[EndpointResult] = field(default_factory=list)
+    used_but_unavailable: list[EndpointResult] = field(default_factory=list)
+    not_used_but_available: list[EndpointResult] = field(default_factory=list)
+    not_used_and_unavailable: list[EndpointResult] = field(default_factory=list)
+    all_results: list[EndpointResult] = field(default_factory=list)
+
+    def to_dict(self) -> dict:
+        """Convert mapping to a dictionary for easy serialization."""
+        return {
+            "used_and_available": [
+                {"name": r.endpoint.name, "url": r.endpoint.url, "status_code": r.status_code}
+                for r in self.used_and_available
+            ],
+            "used_but_unavailable": [
+                {"name": r.endpoint.name, "url": r.endpoint.url, "error": r.error_message}
+                for r in self.used_but_unavailable
+            ],
+            "not_used_but_available": [
+                {"name": r.endpoint.name, "url": r.endpoint.url, "status_code": r.status_code}
+                for r in self.not_used_but_available
+            ],
+            "not_used_and_unavailable": [
+                {"name": r.endpoint.name, "url": r.endpoint.url, "error": r.error_message}
+                for r in self.not_used_and_unavailable
+            ],
+            "summary": {
+                "total": len(self.all_results),
+                "used_and_available": len(self.used_and_available),
+                "used_but_unavailable": len(self.used_but_unavailable),
+                "not_used_but_available": len(self.not_used_but_available),
+                "not_used_and_unavailable": len(self.not_used_and_unavailable),
+            },
+        }
+
+
+# Define all endpoints actively used by the SG Diagram Downloader
 ENDPOINTS_IN_CODE = [
     Endpoint(
         name="SG Base URL",
         url="http://csg.drdlr.gov.za/",
         description="Main Surveyor General website base URL",
         used_in_code=True,
+        source_file="definitions.py",
+        source_line=4,
     ),
     Endpoint(
         name="SG List Documents",
         url="http://csg.drdlr.gov.za/esio/listdocument.jsp",
         description="Lists available SG diagram documents for a parcel",
         used_in_code=True,
+        source_file="sg_utilities.py",
+        source_line=186,
         test_params={
             "regDivision": "C0160000",
             "office": "SGCTN",
@@ -81,23 +140,30 @@ ENDPOINTS_IN_CODE = [
         url="http://csg.drdlr.gov.za/esio/viewTIFF",
         description="Downloads SG diagram TIFF images",
         used_in_code=True,
+        source_file="sg_utilities.py",
+        source_line=285,
     ),
     Endpoint(
         name="SG ESIO Base",
         url="http://csg.drdlr.gov.za/esio/",
-        description="ESIO service base path",
+        description="ESIO service base path used to construct download URLs",
         used_in_code=True,
-    ),
-    Endpoint(
-        name="Alternative IP (Commented)",
-        url="http://196.25.56.232/",
-        description="Alternative base URL (commented out in code)",
-        used_in_code=False,
+        source_file="sg_utilities.py",
+        source_line=285,
     ),
 ]
 
-# Known/documented endpoints that might exist but aren't used
+# Known/documented endpoints that are NOT actively used in the code
+# These include commented-out alternatives and discovered endpoints
 KNOWN_UNUSED_ENDPOINTS = [
+    Endpoint(
+        name="Alternative IP Base",
+        url="http://196.25.56.232/",
+        description="Alternative base URL (commented out in code)",
+        used_in_code=False,
+        source_file="definitions.py",
+        source_line=5,
+    ),
     Endpoint(
         name="Alternative IP ESIO",
         url="http://196.25.56.232/esio/",
@@ -108,6 +174,30 @@ KNOWN_UNUSED_ENDPOINTS = [
         name="Alternative IP List Documents",
         url="http://196.25.56.232/esio/listdocument.jsp",
         description="Alternative list documents via IP",
+        used_in_code=False,
+    ),
+    Endpoint(
+        name="ESIO Search Index",
+        url="http://csg.drdlr.gov.za/esio/searchindex.htm",
+        description="ESIO search interface for diagrams",
+        used_in_code=False,
+    ),
+    Endpoint(
+        name="Data Page",
+        url="http://csg.drdlr.gov.za/data.htm",
+        description="CSG data page",
+        used_in_code=False,
+    ),
+    Endpoint(
+        name="Diagram Documentation",
+        url="http://csg.drdlr.gov.za/diagram.htm",
+        description="Documentation about diagrams",
+        used_in_code=False,
+    ),
+    Endpoint(
+        name="Spatial Data",
+        url="http://csg.drdlr.gov.za/spatial.htm",
+        description="Spatial data information",
         used_in_code=False,
     ),
 ]
@@ -175,23 +265,16 @@ def get_all_endpoints() -> list[Endpoint]:
     return ENDPOINTS_IN_CODE + KNOWN_UNUSED_ENDPOINTS
 
 
-def check_all_endpoints(verbose: bool = True) -> dict:
+def check_all_endpoints(verbose: bool = True) -> EndpointMapping:
     """Check all endpoints and return categorized results.
 
     Args:
         verbose: If True, print progress to stdout.
 
     Returns:
-        Dictionary with categorized results.
+        EndpointMapping with categorized results.
     """
-    results = {
-        "used_and_available": [],
-        "used_but_unavailable": [],
-        "unused_but_available": [],
-        "unused_and_unavailable": [],
-        "all_results": [],
-    }
-
+    mapping = EndpointMapping()
     all_endpoints = get_all_endpoints()
 
     if verbose:
@@ -206,7 +289,6 @@ def check_all_endpoints(verbose: bool = True) -> dict:
             print(f"  URL: {endpoint.url}")
 
         result = test_endpoint(endpoint)
-        results["all_results"].append(result)
 
         if verbose:
             status_icon = {
@@ -231,18 +313,24 @@ def check_all_endpoints(verbose: bool = True) -> dict:
         is_used = endpoint.used_in_code
 
         if is_used and is_available:
-            results["used_and_available"].append(result)
+            result.category = EndpointCategory.USED_AND_AVAILABLE
+            mapping.used_and_available.append(result)
         elif is_used and not is_available:
-            results["used_but_unavailable"].append(result)
+            result.category = EndpointCategory.USED_BUT_UNAVAILABLE
+            mapping.used_but_unavailable.append(result)
         elif not is_used and is_available:
-            results["unused_but_available"].append(result)
+            result.category = EndpointCategory.NOT_USED_BUT_AVAILABLE
+            mapping.not_used_but_available.append(result)
         else:
-            results["unused_and_unavailable"].append(result)
+            result.category = EndpointCategory.NOT_USED_AND_UNAVAILABLE
+            mapping.not_used_and_unavailable.append(result)
 
-    return results
+        mapping.all_results.append(result)
+
+    return mapping
 
 
-def print_summary(results: dict) -> None:
+def print_summary(mapping: EndpointMapping) -> None:
     """Print a summary of the endpoint check results."""
     print("=" * 70)
     print("SUMMARY")
@@ -252,10 +340,15 @@ def print_summary(results: dict) -> None:
     # Used and available (good)
     print("USED AND AVAILABLE (Working correctly):")
     print("-" * 40)
-    if results["used_and_available"]:
-        for r in results["used_and_available"]:
+    if mapping.used_and_available:
+        for r in mapping.used_and_available:
             print(f"  [OK] {r.endpoint.name}")
             print(f"       {r.endpoint.url}")
+            if r.endpoint.source_file:
+                loc = f"{r.endpoint.source_file}"
+                if r.endpoint.source_line:
+                    loc += f":{r.endpoint.source_line}"
+                print(f"       Source: {loc}")
     else:
         print("  (none)")
     print()
@@ -263,32 +356,37 @@ def print_summary(results: dict) -> None:
     # Used but unavailable (critical issue!)
     print("USED BUT UNAVAILABLE (BROKEN - needs attention!):")
     print("-" * 40)
-    if results["used_but_unavailable"]:
-        for r in results["used_but_unavailable"]:
+    if mapping.used_but_unavailable:
+        for r in mapping.used_but_unavailable:
             print(f"  [BROKEN] {r.endpoint.name}")
             print(f"           {r.endpoint.url}")
+            if r.endpoint.source_file:
+                loc = f"{r.endpoint.source_file}"
+                if r.endpoint.source_line:
+                    loc += f":{r.endpoint.source_line}"
+                print(f"           Source: {loc}")
             if r.error_message:
                 print(f"           Error: {r.error_message}")
     else:
         print("  (none - all used endpoints are working)")
     print()
 
-    # Unused but available (potential alternatives)
-    print("UNUSED BUT AVAILABLE (Potential alternatives):")
+    # Not used but available (potential alternatives)
+    print("NOT USED BUT AVAILABLE (Potential alternatives):")
     print("-" * 40)
-    if results["unused_but_available"]:
-        for r in results["unused_but_available"]:
+    if mapping.not_used_but_available:
+        for r in mapping.not_used_but_available:
             print(f"  [AVAILABLE] {r.endpoint.name}")
             print(f"              {r.endpoint.url}")
     else:
         print("  (none)")
     print()
 
-    # Unused and unavailable
-    print("UNUSED AND UNAVAILABLE:")
+    # Not used and unavailable
+    print("NOT USED AND UNAVAILABLE:")
     print("-" * 40)
-    if results["unused_and_unavailable"]:
-        for r in results["unused_and_unavailable"]:
+    if mapping.not_used_and_unavailable:
+        for r in mapping.not_used_and_unavailable:
             print(f"  [N/A] {r.endpoint.name}")
             print(f"        {r.endpoint.url}")
     else:
@@ -297,9 +395,9 @@ def print_summary(results: dict) -> None:
 
     # Overall status
     print("=" * 70)
-    total = len(results["all_results"])
-    available = len(results["used_and_available"]) + len(results["unused_but_available"])
-    broken = len(results["used_but_unavailable"])
+    total = len(mapping.all_results)
+    available = len(mapping.used_and_available) + len(mapping.not_used_but_available)
+    broken = len(mapping.used_but_unavailable)
 
     print(f"Total endpoints checked: {total}")
     print(f"Available: {available}")
@@ -315,14 +413,50 @@ def print_summary(results: dict) -> None:
     print("=" * 70)
 
 
+def get_endpoint_mapping(verbose: bool = False) -> EndpointMapping:
+    """Get a complete mapping of all endpoints with their availability status.
+
+    This is the main utility function for programmatic use.
+
+    Args:
+        verbose: If True, print progress to stdout.
+
+    Returns:
+        EndpointMapping object containing:
+        - used_and_available: Endpoints used in code that are working
+        - used_but_unavailable: Endpoints used in code that are broken (critical!)
+        - not_used_but_available: Endpoints not used but could be alternatives
+        - not_used_and_unavailable: Endpoints that are neither used nor available
+
+    Example:
+        >>> from scripts.check_endpoints import get_endpoint_mapping
+        >>> mapping = get_endpoint_mapping()
+        >>> print(f"Working endpoints: {len(mapping.used_and_available)}")
+        >>> print(f"Broken endpoints: {len(mapping.used_but_unavailable)}")
+        >>> # Get as dictionary for JSON serialization
+        >>> data = mapping.to_dict()
+    """
+    return check_all_endpoints(verbose=verbose)
+
+
+def get_used_endpoints() -> list[Endpoint]:
+    """Get list of endpoints that are actively used in the codebase."""
+    return ENDPOINTS_IN_CODE.copy()
+
+
+def get_unused_endpoints() -> list[Endpoint]:
+    """Get list of known endpoints that are NOT used in the codebase."""
+    return KNOWN_UNUSED_ENDPOINTS.copy()
+
+
 def main():
     """Main entry point."""
     print()
-    results = check_all_endpoints(verbose=True)
-    print_summary(results)
+    mapping = check_all_endpoints(verbose=True)
+    print_summary(mapping)
 
     # Return exit code based on results
-    if results["used_but_unavailable"]:
+    if mapping.used_but_unavailable:
         sys.exit(1)
     sys.exit(0)
 

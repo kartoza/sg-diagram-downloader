@@ -19,8 +19,7 @@ Database manager for Surveyor General Diagram
  *                                                                         *
  ***************************************************************************/
 """
-from __future__ import absolute_import
-from builtins import object
+
 __author__ = 'ismail@kartoza.com'
 __revision__ = '$Format:%H$'
 __date__ = '24/06/2014'
@@ -33,7 +32,7 @@ from .sg_exceptions import DatabaseException
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 
 REGIONAL_OFFICES_SQLITE3 = os.path.join(
-    DATA_DIR, 'sg_diagrams.sqlite')
+    DATA_DIR, 'sg_diagrams.gpkg')
 
 
 class DatabaseManager(object):
@@ -71,7 +70,6 @@ class DatabaseManager(object):
         :raise: DatabaseException
         """
         try:
-            self.db_cursor.execute("SELECT load_extension('mod_spatialite')")
             result = self.db_cursor.execute(query)
             return result
         except db.Error as e:
@@ -93,8 +91,13 @@ class DatabaseManager(object):
 
     def close(self):
         """Close all connections of the database."""
-        self.db_cursor.close()
-        self.db_connection.close()
+        if self.db_cursor is not None:
+            self.db_cursor.close()
+            self.db_cursor = None
+        if self.db_connection is not None:
+            self.db_connection.close()
+            self.db_connection = None
 
-        self.db_cursor = None
-        self.db_connection = None
+    def __del__(self):
+        """Destructor to ensure database connection is closed."""
+        self.close()

@@ -12,8 +12,6 @@ Contact : ole.moller.nielsen@gmail.com
 
 """
 
-from builtins import str
-from builtins import object
 __author__ = 'akbargumbira@gmail.com'
 __revision__ = '$Format:%H$'
 __date__ = '16/03/2014'
@@ -21,19 +19,19 @@ __copyright__ = ('Copyright 2012, Australia Indonesia Facility for '
                  'Disaster Reduction')
 
 
-# noinspection PyPackageRequirements
-from qgis.PyQt.QtCore import QCoreApplication, QFile, QUrl, QByteArray
-# noinspection PyPackageRequirements
-from qgis.PyQt.QtNetwork import QNetworkRequest, QNetworkReply
+from qgis.PyQt.QtCore import QUrl
+from qgis.PyQt.QtNetwork import QNetworkRequest
+from qgis.core import QgsBlockingNetworkRequest
 
 
-class FileDownloader(object):
-    """The blueprint for downloading file from url."""
+class FileDownloader:
+    """The blueprint for downloading file from url using QGIS networking."""
+
     def __init__(self, manager, url, output_path, progress_dialog=None):
         """Constructor of the class.
 
-        :param manager: QNetworkAccessManager instance to handle downloading.
-        :type manager: QNetworkAccessManager
+        :param manager: QgsNetworkAccessManager instance (kept for API compatibility).
+        :type manager: QgsNetworkAccessManager
 
         :param url: URL of file.
         :type url: str
@@ -41,90 +39,40 @@ class FileDownloader(object):
         :param output_path: Output path.
         :type output_path: str
 
-        :param progress_dialog: Progress dialog widget.
+        :param progress_dialog: Progress dialog widget (not used with blocking request).
         :type progress_dialog: QWidget
 
         """
-        self.manager = manager
+        self.manager = manager  # kept for API compatibility
         self.url = url
         self.output_path = output_path
         self.progress_dialog = progress_dialog
-        self.output_file = None
-        self.reply = None
-        self.downloaded_file_buffer = None
-        self.finished_flag = False
 
     def download(self):
-        """Downloading the file.
+        """Download the file using QgsBlockingNetworkRequest.
 
-        :returns: True if success, otherwise returns a tuple with format like
-            this (QNetworkReply.NetworkError, error_message)
+        :returns: Tuple of (success, error_message). Success is True if download
+            succeeded, otherwise False with an error message.
+        :rtype: tuple
 
         :raises: IOError - when cannot create output_path
         """
-        # Prepare output path
-        self.output_file = QFile(self.output_path)
-        if not self.output_file.open(QFile.WriteOnly):
-            raise IOError(self.output_file.errorString())
-
-        # Prepare downloaded buffer
-        self.downloaded_file_buffer = QByteArray()
-
-        # Request the url
         request = QNetworkRequest(QUrl(self.url))
-        self.reply = self.manager.get(request)
-        self.reply.readyRead.connect(self.update_buffer_container)
-        self.reply.finished.connect(self.write_data)
+        blocking_request = QgsBlockingNetworkRequest()
 
-        if self.progress_dialog:
-            # progress bar
-            def progress_event(received, total):
-                """Update progress.
+        error_code = blocking_request.get(request)
 
-                :param received: Data received so far.
-                :type received: int
+        if error_code != QgsBlockingNetworkRequest.NoError:
+            error_msg = blocking_request.errorMessage()
+            return False, error_msg
 
-                :param total: Total expected data.
-                :type total: int
-                """
-                # noinspection PyArgumentList
-                QCoreApplication.processEvents()
+        reply = blocking_request.reply()
+        content = reply.content()
 
-                label_text = "%s / %s" % (received, total)
-                self.progress_dialog.setLabelText(label_text)
-                self.progress_dialog.setMaximum(total)
-                self.progress_dialog.setValue(received)
+        try:
+            with open(self.output_path, 'wb') as f:
+                f.write(content.data())
+        except IOError as e:
+            raise IOError(str(e))
 
-            # cancel
-            def cancel_action():
-                """Cancel download."""
-                self.reply.abort()
-
-            self.reply.downloadProgress.connect(progress_event)
-            self.progress_dialog.canceled.connect(cancel_action)
-
-        # Wait until finished
-        # On Windows 32bit AND QGIS 2.2, self.reply.isFinished() always
-        # returns False even after finished slot is called. So, that's why we
-        # are adding self.finished_flag (see #864)
-        while not self.reply.isFinished() and not self.finished_flag:
-            # noinspection PyArgumentList
-            QCoreApplication.processEvents()
-
-        result = self.reply.error()
-        if result == QNetworkReply.NoError:
-            return True, None
-        else:
-            return result, str(self.reply.errorString())
-
-    def update_buffer_container(self):
-        """Update buffer container by using buffer obtained from self.reply"""
-        buffer_size = self.reply.size()
-        data = self.reply.read(buffer_size)
-        self.downloaded_file_buffer.append(data)
-
-    def write_data(self):
-        """Write data to a file."""
-        self.output_file.write(self.downloaded_file_buffer)
-        self.output_file.close()
-        self.finished_flag = True
+        return True, None

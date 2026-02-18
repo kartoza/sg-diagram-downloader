@@ -24,7 +24,6 @@
       };
 
       extraPythonPackages = ps: [
-        ps.pyqtwebengine
         ps.debugpy
         ps.psutil
         ps.requests
@@ -119,10 +118,8 @@
             ps.toml
             ps.typer
             ps.wheel
-            ps.pyqt5-stubs
             ps.venvShellHook
             ps.virtualenv
-            ps.pyqtwebengine
           ]))
         ];
         shellHook = ''
@@ -157,14 +154,8 @@
             echo "No requirements-dev.txt found, skipping pip install."
           fi
 
-          # Add PyQt and QGIS to python path for neovim
-          pythonWithPackages="${
-            pkgs.python3.withPackages (ps: [
-              ps.pyqt5-stubs
-              ps.pyqtwebengine
-            ])
-          }"
-          export PYTHONPATH="$pythonWithPackages/lib/python*/site-packages:${qgisWithExtras}/share/qgis/python:$PYTHONPATH"
+          # Add QGIS to python path for neovim
+          export PYTHONPATH="${qgisWithExtras}/share/qgis/python:$PYTHONPATH"
 
           # Colors and styling
           CYAN='\033[38;2;83;161;203m'

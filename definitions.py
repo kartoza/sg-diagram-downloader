@@ -1,5 +1,6 @@
 # coding=utf-8
 """Base definitions.."""
 
-BASE_URL = 'http://csg.drdlr.gov.za/'
-#BASE_URL = 'http://196.25.56.232/'
+# BASE_URL = 'http://csg.drdlr.gov.za/'
+BASE_URL = "https://csg.dlrrd.gov.za/"
+# BASE_URL = 'http://196.25.56.232/'
