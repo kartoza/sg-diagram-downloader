@@ -1,8 +1,6 @@
 # coding=utf-8
 """Common functionality used by regression tests."""
-from __future__ import absolute_import
 
-from builtins import str
 import os
 import sys
 import logging

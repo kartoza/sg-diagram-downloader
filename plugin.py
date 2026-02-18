@@ -20,14 +20,11 @@ diagrams.
  *                                                                         *
  ***************************************************************************/
 """
-from __future__ import absolute_import
 
-from builtins import object
-
-__author__ = 'ismail@kartoza.com'
-__revision__ = '$Format:%H$'
-__date__ = '30/05/2014'
-__copyright__ = ''
+__author__ = "ismail@kartoza.com"
+__revision__ = "$Format:%H$"
+__date__ = "30/05/2014"
+__copyright__ = ""
 
 import os
 import logging
@@ -48,13 +45,16 @@ from .utilities.resources import resources_path
 
 # from pydev import pydevd  # pylint: disable=F0401
 
-MENU_GROUP_LABEL = u'SG Diagram Downloader'
-MENU_RUN_LABEL = u'Download Surveyor General Diagram'
-LOGGER = logging.getLogger('QGIS')
+MENU_GROUP_LABEL = "SG Diagram Downloader"
+MENU_RUN_LABEL = "Download Surveyor General Diagram"
+LOGGER = logging.getLogger("QGIS")
 
 
 class SGDiagramDownloader(object):
     """QGIS Plugin Implementation."""
+
+    # Class constants
+    DEBUG_PORT = 9000  # Port for debugpy connection
 
     def __init__(self, iface):
         """Constructor.
@@ -64,10 +64,12 @@ class SGDiagramDownloader(object):
             application at run time.
         :type iface: QgsInterface
         """
-        # Enable remote debugging - should normally be commented out.
-        # pydevd.settrace(
-        #    'localhost', port=5678, stdoutToServer=True,
-        #     stderrToServer=True)
+        # Enable remote debugging via SG_DOWNLOADER_DEBUG environment variable
+        # Set SG_DOWNLOADER_DEBUG=1 via scripts/start_qgis.sh to enable
+        debug_env = int(os.getenv("SG_DOWNLOADER_DEBUG", 0))
+        if debug_env:
+            print(f"SG Diagram Downloader: Debug mode enabled, starting debugger on port {self.DEBUG_PORT}...")
+            self._start_debugger()
 
         # Save reference to the QGIS interface
         self.iface = iface
@@ -82,17 +84,16 @@ class SGDiagramDownloader(object):
         self.menu = self.tr(MENU_GROUP_LABEL)
         # TODO: We are going to let the user set this up in a future iteration
         self.toolbar = self.iface.addToolBar(MENU_GROUP_LABEL)
-        self.toolbar.setObjectName(u'SGDiagramDownloader')
+        self.toolbar.setObjectName("SGDiagramDownloader")
 
         self.province_layer = QgsVectorLayer(
-            os.path.join(os.path.dirname(__file__), 'data', 'provinces.shp'),
-            'provinces',
-            'ogr')
+            os.path.join(os.path.dirname(__file__), "data", "provinces.shp"), "provinces", "ogr"
+        )
 
         if self.province_layer is None:
-            LOGGER.error('Could not load provinces layer.')
+            LOGGER.error("Could not load provinces layer.")
         else:
-            LOGGER.error('Provinces loaded ok.')
+            LOGGER.error("Provinces loaded ok.")
 
     # noinspection PyMethodMayBeStatic
     def tr(self, message):
@@ -107,19 +108,20 @@ class SGDiagramDownloader(object):
         :rtype: QString
         """
         # noinspection PyTypeChecker,PyArgumentList,PyCallByClass
-        return QCoreApplication.translate('SGDiagramDownloader', message)
+        return QCoreApplication.translate("SGDiagramDownloader", message)
 
     def add_action(
-            self,
-            icon_path,
-            text,
-            callback,
-            enabled_flag=True,
-            add_to_menu=True,
-            add_to_toolbar=True,
-            status_tip=None,
-            whats_this=None,
-            parent=None):
+        self,
+        icon_path,
+        text,
+        callback,
+        enabled_flag=True,
+        add_to_menu=True,
+        add_to_toolbar=True,
+        status_tip=None,
+        whats_this=None,
+        parent=None,
+    ):
         """Add a toolbar icon to the Surveyor Diagram toolbar.
 
         :param icon_path: Path to the icon for this action. Can be a resource
@@ -176,9 +178,7 @@ class SGDiagramDownloader(object):
             self.toolbar.addAction(action)
 
         if add_to_menu:
-            self.iface.addPluginToVectorMenu(
-                self.menu,
-                action)
+            self.iface.addPluginToVectorMenu(self.menu, action)
 
         self.actions.append(action)
 
@@ -187,15 +187,18 @@ class SGDiagramDownloader(object):
     # noinspection PyPep8Naming
     def initGui(self):
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
-        self.menu = u'Surveyor General Diagram Downloader'
-        icon_path = resources_path('icon.svg')
+        self.menu = "Surveyor General Diagram Downloader"
+        icon_path = resources_path("icon.svg")
         self.download_dialog = self.add_action(
             icon_path,
-            text=self.tr(u'Download Surveyor General Diagram',),
+            text=self.tr(
+                "Download Surveyor General Diagram",
+            ),
             callback=self.show_download_dialog,
             parent=self.iface.mainWindow(),
             add_to_toolbar=True,
-            add_to_menu=True)
+            add_to_menu=True,
+        )
         # Special case setup for our map tool which uses custom QAction
         # icon = QIcon(':/plugins/SGDiagramDownloader/maptool.svg')
         # map_tool = SGAction(
@@ -210,13 +213,39 @@ class SGDiagramDownloader(object):
     def unload(self):
         """Removes the plugin menu item and icon from QGIS GUI."""
         for action in self.actions:
-            self.iface.removePluginMenu(
-                self.tr(MENU_RUN_LABEL),
-                action)
+            self.iface.removePluginVectorMenu(self.menu, action)
             self.iface.removeToolBarIcon(action)
+        # Delete the toolbar
+        if self.toolbar is not None:
+            del self.toolbar
+            self.toolbar = None
+        # Clean up province layer
+        if self.province_layer is not None:
+            del self.province_layer
+            self.province_layer = None
+        # Clear actions list
+        self.actions = []
 
-    # @staticmethod
     def show_download_dialog(self):
         """Show the download dialog."""
         dialog = DownloadDialog(self.iface)
-        dialog.exec_()  # modal
+        dialog.exec_()
+
+    def _start_debugger(self):
+        """Start debugpy debugger for remote debugging.
+
+        niListens on DEBUG_PORT (9000 and waits for a client to attach.
+        Use VS Code or any DAP-compatible debugger to connect.
+        """
+        import multiprocessing
+
+        if multiprocessing.current_process().pid > 1:
+            try:
+                import debugpy
+
+                debugpy.listen(("0.0.0.0", self.DEBUG_PORT))  # nosec B104
+                LOGGER.info(f"Debugger listening on port {self.DEBUG_PORT}. " "Attach VS Code debugger now...")
+                debugpy.wait_for_client()
+                LOGGER.info("Debugger client attached.")
+            except Exception as e:
+                LOGGER.error(f"Failed to start debugger: {e}")

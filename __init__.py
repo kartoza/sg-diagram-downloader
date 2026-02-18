@@ -21,14 +21,11 @@ diagrams.
  ***************************************************************************/
  This script initializes the plugin, making it known to QGIS.
 """
-from __future__ import absolute_import
 
-# Import the PyQt and QGIS libraries
-# this import required to enable PyQt API v2
 import os
 import sys
 
-from . import custom_logging  # pylint: disable=relative-import
+from . import custom_logging
 
 THIRD_PARTY_DIR = os.path.abspath(
     os.path.join(os.path.dirname(__file__), 'third_party'))
@@ -44,9 +41,11 @@ custom_logging.setup_logger(SENTRY_URL)
 
 
 # noinspection PyPep8Naming
-def classFactory(iface):  # pylint: disable=invalid-name
-    """load SGDiagramDownloader class from file SGDiagramDownloader."""
-    # pylint: disable=relative-import
+def classFactory(iface):
+    """Load SGDiagramDownloader class from file plugin.py.
+
+    :param iface: A QGIS interface instance.
+    :type iface: QgsInterface
+    """
     from .plugin import SGDiagramDownloader
-    # pylint: enable=relative-import
     return SGDiagramDownloader(iface)

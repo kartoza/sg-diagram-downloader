@@ -19,7 +19,6 @@ LogDialog
  *                                                                         *
  ***************************************************************************/
 """
-from __future__ import absolute_import
 
 __author__ = 'ismail@kartoza.com'
 __revision__ = '$Format:%H$'
@@ -30,12 +29,8 @@ import logging
 import webbrowser
 
 # Import the PyQt and QGIS libraries
-# this import required to enable PyQt API v2
-# do it before Qt imports
-import qgis  # NOQA pylint: disable=unused-import
-from PyQt5.QtWidgets import QDialogButtonBox
 from qgis.PyQt import QtGui
-from qgis.PyQt.QtWidgets import QDialog
+from qgis.PyQt.QtWidgets import QDialog, QDialogButtonBox
 
 from .utilities.resources import get_ui_class
 

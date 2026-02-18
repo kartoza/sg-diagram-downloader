@@ -19,17 +19,11 @@ Utilities for Surveyor General Diagram
  *                                                                         *
  ***************************************************************************/
 """
-from __future__ import absolute_import
 
-from future import standard_library
-
-standard_library.install_aliases()
-from builtins import str
-
-__author__ = 'ismail@kartoza.com'
-__revision__ = '$Format:%H$'
-__date__ = '30/05/2014'
-__copyright__ = ''
+__author__ = "ismail@kartoza.com"
+__revision__ = "$Format:%H$"
+__date__ = "30/05/2014"
+__copyright__ = ""
 
 import os
 import re
@@ -39,15 +33,17 @@ from qgis.core import (
     QgsCoordinateTransform,
     QgsFeature,
     QgsFeatureRequest,
+    QgsMessageLog,
     QgsProject,
     QgsRectangle,
     QgsSpatialIndex,
-    )
+    Qgis,
+)
 
-from PyQt5.QtNetwork import QNetworkAccessManager
-from qgis.PyQt.QtCore import QSettings
+from qgis.PyQt.QtCore import QSettings, QUrl
+from qgis.PyQt.QtNetwork import QNetworkRequest
+from qgis.core import QgsBlockingNetworkRequest
 
-import urllib.request, urllib.parse, urllib.error
 from urllib.parse import urlparse
 from .definitions import BASE_URL
 from .file_downloader import FileDownloader
@@ -57,45 +53,73 @@ from .sg_exceptions import (
     UrlException,
     InvalidSGCodeException,
     ParseException,
-    NotInSouthAfricaException
+    NotInSouthAfricaException,
 )
-from .proxy import get_proxy
 from .custom_logging import LOGGER
 
 # pylint: disable=F0401
 # noinspection PyUnresolvedReferences
 from bs4 import BeautifulSoup
 
+TAG = "SG-Downloader"
+
+
+def log_message(message, level=Qgis.Info):
+    """Log a message to QGIS message log and to the log file.
+
+    :param message: The message to log.
+    :type message: str
+
+    :param level: The log level (Qgis.Info, Qgis.Warning, Qgis.Critical).
+    :type level: Qgis.MessageLevel
+    """
+    # Log to QGIS message log
+    QgsMessageLog.logMessage(message, TAG, level)
+
+    # Also log to file via the Python logger
+    if level == Qgis.Critical:
+        LOGGER.error(message)
+    elif level == Qgis.Warning:
+        LOGGER.warning(message)
+    else:
+        LOGGER.info(message)
+
+
 # pylint: enable=F0401
 
-DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
-SG_DIAGRAM_SQLITE3 = os.path.join(DATA_DIR, 'sg_diagrams.gpkg')
+DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
+SG_DIAGRAM_SQLITE3 = os.path.join(DATA_DIR, "sg_diagrams.gpkg")
+PROVINCES_LAYER_PATH = SG_DIAGRAM_SQLITE3 + "|layername=provinces"
 PROVINCE_NAMES = [
-    'Eastern Cape',
-    'KwaZulu-Natal',
-    'Limpopo',
-    'Mpumalanga',
-    'Western Cape',
-    'Gauteng',
-    'Free State'
+    "Eastern Cape",
+    "Free State",
+    "Gauteng",
+    "KwaZulu-Natal",
+    "Limpopo",
+    "Mpumalanga",
+    "Northern Cape",
+    "North West",
+    "Western Cape",
 ]
 
 
 def write_log(log, log_path):
-    """Show log dialog.
+    """Write log to file.
 
-    :param log: Log in text
+    :param log: Log text to write
     :type log: str
 
     :param log_path: Log file path.
     :type log_path: str
+
+    :raises IOError: If file cannot be written
     """
     try:
-        f = open(log_path, 'a')
-        f.write(log)
-        f.close()
+        with open(log_path, "a") as f:
+            f.write(log)
     except IOError as e:
-        raise e
+        LOGGER.error("Failed to write log to %s: %s" % (log_path, str(e)))
+        raise
 
 
 def get_office(db_manager, region_code=None, province=None):
@@ -115,8 +139,9 @@ def get_office(db_manager, region_code=None, province=None):
     """
     try:
         query = (
-                "SELECT office, office_no, typology FROM regional_office WHERE "
-                "province='%s' AND region_code='%s'" % (province, region_code))
+            "SELECT office, office_no, typology FROM regional_office WHERE "
+            "province='%s' AND region_code='%s'" % (province, region_code)
+        )
 
         result = db_manager.fetch_one(query)
 
@@ -145,8 +170,8 @@ def is_valid_sg_code(value):
     # C01900000000026300000
     # I did a quick scan of all the unique starting letters from
     # Gavin's test dataset and came up with OBCFNT
-    prefixes = 'OBCFNT'
-    sg_code_regex_string = '^[%s][A-Z0-9]{4}[0-9]{16}$' % prefixes
+    prefixes = "OBCFNT"
+    sg_code_regex_string = "^[%s][A-Z0-9]{4}[0-9]{16}$" % prefixes
     sg_code_regex = re.compile(sg_code_regex_string)
     if len(value) != 21:
         return False
@@ -173,36 +198,49 @@ def construct_url(db_manager, sg_code=None, province_name=None):
     :returns: URL to download sg diagram.
     :rtype: str
     """
-    LOGGER.info('Constructing url for %s %s' % (sg_code, province_name))
+    log_message("Constructing URL for sg_code=%s, province=%s" % (sg_code, province_name))
+    LOGGER.info("Constructing url for %s %s" % (sg_code, province_name))
+
     if not is_valid_sg_code(sg_code):
+        log_message("Invalid SG code: %s" % sg_code, Qgis.Warning)
         raise InvalidSGCodeException
 
     if sg_code is None or province_name is None:
+        log_message("Missing sg_code or province_name", Qgis.Warning)
         raise UrlException()
 
     if province_name not in PROVINCE_NAMES:
+        log_message('Province "%s" not in valid provinces: %s' % (province_name, PROVINCE_NAMES), Qgis.Warning)
         raise NotInSouthAfricaException
 
-    base_url = BASE_URL + 'esio/listdocument.jsp?'
+    base_url = BASE_URL + "esio/listdocument.jsp?"
     reg_division = sg_code[:8]
+    log_message("Regional division: %s" % reg_division)
 
     try:
         record = get_office(db_manager, reg_division, province_name)
-    except DatabaseException:
+        log_message("Office record: %s" % str(record))
+    except DatabaseException as e:
+        log_message("Database error getting office: %s" % str(e), Qgis.Critical)
         raise DatabaseException
 
-    if record is None or bool(record) is None:
+    if not record:
+        log_message("No office record found for region=%s, province=%s" % (reg_division, province_name), Qgis.Warning)
         raise DatabaseException
 
     office, office_number, typology = record
+    log_message("Office: %s, Office Number: %s, Typology: %s" % (office, office_number, typology))
 
     erf = sg_code[8:16]
     portion = sg_code[16:]
-    url = base_url + 'regDivision=' + reg_division
-    url += '&office=' + office
-    url += '&Noffice=' + office_number
-    url += '&Erf=' + erf
-    url += '&Portion=' + portion
+    url = base_url + "regDivision=" + reg_division
+    url += "&office=" + office
+    url += "&Noffice=" + office_number
+    url += "&Erf=" + erf
+    url += "&Portion=" + portion
+
+    log_message("Constructed SG diagram URL: %s" % url)
+    LOGGER.info("Constructed URL: %s" % url)
     return url
 
 
@@ -216,7 +254,7 @@ def get_filename(url):
     """
     parsed_url = urlparse(url)
     url_query = parsed_url[4]
-    file_name = url_query.split('&')[0].split('/')[-1]
+    file_name = url_query.split("&")[0].split("/")[-1]
 
     return file_name
 
@@ -242,21 +280,14 @@ def download_from_url(url, output_directory, filename=None, use_cache=True):
     """
     if filename is None:
         filename = get_filename(url)
-    LOGGER.info('Download file %s from %s' % (filename, url))
+    LOGGER.info("Download file %s from %s" % (filename, url))
     file_path = os.path.join(output_directory, filename)
     if os.path.exists(file_path) and use_cache:
-        LOGGER.info('File %s exists, not downloading' % file_path)
+        LOGGER.info("File %s exists, not downloading" % file_path)
         return file_path
 
-    # Set Proxy in webpage
-    proxy = get_proxy()
-    network_manager = QNetworkAccessManager()
-    if proxy is not None:
-        network_manager.setProxy(proxy)
-
-    # Download Process
-    # noinspection PyTypeChecker
-    downloader = FileDownloader(network_manager, url, file_path)
+    # Download Process (uses QgsBlockingNetworkRequest internally)
+    downloader = FileDownloader(None, url, file_path)
     try:
         result = downloader.download()
     except IOError as ex:
@@ -272,34 +303,81 @@ def download_from_url(url, output_directory, filename=None, use_cache=True):
         return None
 
 
+def fetch_url_content(url):
+    """Fetch content from a URL using QGIS networking.
+
+    :param url: URL to fetch.
+    :type url: str
+
+    :returns: Response content as bytes.
+    :rtype: bytes
+
+    :raises: ParseException if the request fails.
+    """
+    LOGGER.info("fetch_url_content: Fetching URL: %s" % url)
+    request = QNetworkRequest(QUrl(url))
+    blocking_request = QgsBlockingNetworkRequest()
+
+    error_code = blocking_request.get(request)
+    LOGGER.info("fetch_url_content: Request completed with error_code: %s" % error_code)
+
+    if error_code != QgsBlockingNetworkRequest.NoError:
+        error_msg = blocking_request.errorMessage()
+        LOGGER.error("fetch_url_content: Request failed: %s" % error_msg)
+        raise ParseException(error_msg)
+
+    reply = blocking_request.reply()
+    content = reply.content().data()
+    LOGGER.info("fetch_url_content: Received %d bytes" % len(content))
+    return content
+
+
 def parse_download_page(download_page_url):
-    """Parse download_page_url to get list of download link.
+    """Parse download_page_url to get list of download links.
 
     :param download_page_url: Url to download page.
     :type download_page_url: str
 
-    :returns: List of url to download the diagram.
+    :returns: List of urls to download the diagrams.
     :rtype: list
+
+    :raises ParseException: If the page cannot be fetched or parsed.
     """
+    log_message("Parsing download page: %s" % download_page_url)
+    LOGGER.info("Parsing download page: %s" % download_page_url)
+
     download_urls = []
-    url_prefix = BASE_URL + 'esio/'
+    url_prefix = BASE_URL + "esio/"
     try:
-        html = urllib.request.urlopen(download_page_url)
-        download_page_soup = BeautifulSoup(html)
-        urls = download_page_soup.find_all('a')
+        html = fetch_url_content(download_page_url)
+        download_page_soup = BeautifulSoup(html, "html.parser")
+        urls = download_page_soup.find_all("a")
+        log_message("Found %d links on download page" % len(urls))
+
         for url in urls:
-            full_url = url['href']
-            if full_url[0:2] == './':
+            full_url = url["href"]
+            if full_url[0:2] == "./":
                 full_url = full_url[2:]
             full_url = url_prefix + full_url
             download_urls.append(str(full_url))
+            log_message("Found diagram download URL: %s" % full_url)
+            LOGGER.debug("Parsed download URL: %s" % full_url)
+
+        log_message("Total download URLs found: %d" % len(download_urls))
+        LOGGER.info("Found %d download URLs" % len(download_urls))
         return download_urls
-    except IOError as e:
-        raise ParseException(e)
+    except ParseException:
+        raise
+    except KeyError as e:
+        log_message("HTML parsing error - missing href attribute: %s" % str(e), Qgis.Warning)
+        raise ParseException("Invalid HTML structure in download page")
+    except Exception as e:
+        log_message("Error parsing download page: %s" % str(e), Qgis.Critical)
+        LOGGER.exception("Failed to parse download page")
+        raise ParseException(str(e))
 
 
-def download_sg_diagram(
-        db_manager, sg_code, province_name, output_directory, callback=None):
+def download_sg_diagram(db_manager, sg_code, province_name, output_directory, callback=None):
     """Download sg diagram using sg_code and put it under output_directory.
 
     :param db_manager: A database manager
@@ -326,24 +404,22 @@ def download_sg_diagram(
     if callback is None:
         callback = print_progress_callback
 
-    report = 'Downloading documents for %s in %s\n' % (sg_code, province_name)
+    report = "Downloading documents for %s in %s\n" % (sg_code, province_name)
 
     try:
         download_page = construct_url(db_manager, sg_code, province_name)
-    except (InvalidSGCodeException,
-            DatabaseException,
-            UrlException,
-            NotInSouthAfricaException) as e:
-        report += (
-                'Failed: Downloading SG code %s for province %s because of %s\n' %
-                (sg_code, province_name, e.reason))
+        report += download_page
+    except (InvalidSGCodeException, DatabaseException, UrlException, NotInSouthAfricaException) as e:
+        report += "\nFailed: Downloading SG code %s for province %s because of %s\n" % (
+            sg_code,
+            province_name,
+            e.reason,
+        )
         return report
     try:
         download_links = parse_download_page(download_page)
     except ParseException as e:
-        report += (
-                'Failed: Downloading SG code %s for province %s because of %s\n' %
-                (sg_code, province_name, e.reason))
+        report += "Failed: Downloading SG code %s for province %s because of %s\n" % (sg_code, province_name, e.reason)
         return report
 
     output_directory = os.path.join(output_directory, sg_code)
@@ -353,29 +429,29 @@ def download_sg_diagram(
     count = 0
     total = len(download_links)
     if total == 0:
-        report += 'No documents found for %s in %s' % (sg_code, province_name)
+        report += "No documents found for %s in %s" % (sg_code, province_name)
 
     for download_link in download_links:
         count += 1
-        message = ('[%s - %s] Downloading file %s of %s' % (
-            sg_code, province_name, count, total))
+        message = "[%s - %s] Downloading file %s of %s" % (sg_code, province_name, count, total)
         callback(count, total, message)
         try:
             file_path = download_from_url(download_link, output_directory)
             if file_path is not None:
-                report += 'Success: File %i of %i : %s saved to %s\n' % (
-                    count, total, download_link, file_path)
+                report += "Success: File %i of %i : %s saved to %s\n" % (count, total, download_link, file_path)
             else:
-                report += 'Failed: File %i of %i : %s \n' % (
-                    count, total, download_link)
+                report += "Failed: File %i of %i : %s \n" % (count, total, download_link)
         except DownloadException as e:
-            message = 'Failed to download %s for %s in %s because %s' % (
-                download_link, sg_code, province_name, e.reason)
+            message = "Failed to download %s for %s in %s because %s" % (
+                download_link,
+                sg_code,
+                province_name,
+                e.reason,
+            )
             LOGGER.exception(message)
-            report += 'Failed: File %i of %i : %s \n' % (
-                count, total, download_link)
+            report += "Failed: File %i of %i : %s \n" % (count, total, download_link)
 
-    message = 'Downloads completed for %s in %s' % (sg_code, province_name)
+    message = "Downloads completed for %s in %s" % (sg_code, province_name)
     callback(count, total, message)
     return report
 
@@ -395,40 +471,153 @@ def get_spatial_index(data_provider):
     return index
 
 
+# Cache for provinces layer to avoid reloading for every point lookup
+_provinces_layer_cache = {"layer": None, "checked": False, "valid": False}
+
+
+def _get_provinces_layer():
+    """Get the provinces layer, using cache to avoid repeated loading attempts.
+
+    :returns: Tuple of (layer, is_valid)
+    :rtype: tuple
+    """
+    from qgis.core import QgsVectorLayer
+
+    # Return cached result if already checked
+    if _provinces_layer_cache["checked"]:
+        return _provinces_layer_cache["layer"], _provinces_layer_cache["valid"]
+
+    _provinces_layer_cache["checked"] = True
+
+    # First check if the GeoPackage file exists
+    if not os.path.exists(SG_DIAGRAM_SQLITE3):
+        log_message("GeoPackage not found at %s" % SG_DIAGRAM_SQLITE3, Qgis.Warning)
+        return None, False
+
+    # Check if provinces layer exists in the GeoPackage using sqlite
+    # This avoids GDAL/OGR errors from trying to load an invalid layer
+    try:
+        import sqlite3
+
+        conn = sqlite3.connect(SG_DIAGRAM_SQLITE3)
+        cursor = conn.cursor()
+        cursor.execute("SELECT column_name FROM gpkg_geometry_columns WHERE table_name='provinces'")
+        row = cursor.fetchone()
+        conn.close()
+
+        if not row:
+            log_message("No provinces layer found in GeoPackage", Qgis.Info)
+            return None, False
+
+        geom_column = row[0]
+        if geom_column != "geom":
+            log_message("Provinces layer has wrong geometry column: %s (expected geom)" % geom_column, Qgis.Warning)
+            return None, False
+
+    except Exception as e:
+        log_message("Error checking GeoPackage structure: %s" % str(e), Qgis.Warning)
+        return None, False
+
+    # Now safe to load the layer
+    provinces_layer = QgsVectorLayer(PROVINCES_LAYER_PATH, "provinces", "ogr")
+
+    if not provinces_layer.isValid():
+        log_message("Could not load provinces layer from %s" % PROVINCES_LAYER_PATH, Qgis.Warning)
+        return None, False
+
+    log_message("Provinces layer loaded with %d features" % provinces_layer.featureCount())
+    _provinces_layer_cache["layer"] = provinces_layer
+    _provinces_layer_cache["valid"] = True
+    return provinces_layer, True
+
+
 def province_for_point(db_manager, centroid):
     """Determine which province a point falls into.
 
     Typically you will get the centroid of a parcel or a click position
     on the map and then call this function with it.
 
-    :param db_manager: A database manager
+    :param db_manager: A database manager (used as fallback for province lookup)
     :type db_manager: DatabaseManager
 
     :param centroid: Point at which lookup should occur.
-    :type centroid: QgsPoint
+    :type centroid: QgsPointXY
 
     :returns: Province Name
     :rtype: str
     """
-    centroid_wkt = centroid.asWkt()
+    from qgis.core import QgsPointXY, QgsGeometry
 
-    query = "SELECT province FROM provinces WHERE "
-    query += "Within(GeomFromText('%s'), Geometry)" % centroid_wkt
+    # Get cached provinces layer
+    provinces_layer, is_valid = _get_provinces_layer()
 
-    row = db_manager.fetch_one(query)
+    if not is_valid:
+        # Fallback: use coordinate-based province lookup
+        return _province_for_point_db_fallback(db_manager, centroid)
 
-    if row is None:
-        return None
+    # Create a point geometry for the centroid
+    if isinstance(centroid, QgsPointXY):
+        point_geom = QgsGeometry.fromPointXY(centroid)
     else:
-        return row[0]
+        # Handle QgsPoint (3D) by converting to QgsPointXY
+        point_geom = QgsGeometry.fromPointXY(QgsPointXY(centroid.x(), centroid.y()))
+
+    # Find which province contains the point
+    for feature in provinces_layer.getFeatures():
+        if feature.geometry().contains(point_geom):
+            # Try common field names for province
+            for field_name in ["province", "PROVINCE", "name", "NAME", "provname", "PROVNAME"]:
+                idx = provinces_layer.fields().indexFromName(field_name)
+                if idx >= 0:
+                    return feature.attributes()[idx]
+            # If no known field found, return the first attribute
+            if feature.attributes():
+                return str(feature.attributes()[0])
+
+    return None
 
 
-def map_sg_codes_to_provinces(
-        db_manager,
-        site_layer,
-        parcels_layer,
-        sg_code_field,
-        all_features=False):
+def _province_for_point_db_fallback(db_manager, centroid):
+    """Fallback method to determine province using simple bounding box lookup.
+
+    This is used when the provinces vector layer cannot be loaded.
+    Uses a simple coordinate-based lookup based on known SA province boundaries.
+
+    :param db_manager: Database manager (not used in this simple implementation)
+    :param centroid: Point to lookup
+    :returns: Province name or None
+    """
+    from qgis.core import QgsPointXY
+
+    # Get coordinates
+    if isinstance(centroid, QgsPointXY):
+        x, y = centroid.x(), centroid.y()
+    else:
+        x, y = centroid.x(), centroid.y()
+
+    # Simple bounding box based province detection for South Africa
+    # These are approximate boundaries in EPSG:4326 (WGS84)
+    # This is a rough fallback - proper spatial lookup is preferred
+    province_bounds = {
+        "Western Cape": (17.5, -34.5, 23.5, -31.0),
+        "Eastern Cape": (23.5, -34.0, 30.5, -30.5),
+        "Northern Cape": (16.5, -32.0, 24.5, -26.5),
+        "Free State": (24.0, -30.5, 30.0, -26.5),
+        "KwaZulu-Natal": (28.5, -31.5, 33.0, -27.0),
+        "Gauteng": (27.0, -26.5, 29.0, -25.0),
+        "Mpumalanga": (28.5, -27.0, 32.0, -24.0),
+        "Limpopo": (26.5, -25.0, 31.5, -22.0),
+        "North West": (22.5, -28.0, 28.0, -24.5),
+    }
+
+    for province, (min_x, min_y, max_x, max_y) in province_bounds.items():
+        if min_x <= x <= max_x and min_y <= y <= max_y:
+            return province
+
+    return None
+
+
+def map_sg_codes_to_provinces(db_manager, site_layer, parcels_layer, sg_code_field, all_features=False):
     """Obtains sg codes from target layer.
 
     :param db_manager: A database manager
@@ -452,6 +641,14 @@ def map_sg_codes_to_provinces(
     """
     intersecting_parcels = []
     sg_code_provinces = {}
+
+    LOGGER.info(
+        "map_sg_codes_to_provinces called with sg_code_field=%s, all_features=%s" % (sg_code_field, all_features)
+    )
+    LOGGER.info(
+        "site_layer: %s, parcels_layer: %s"
+        % (site_layer.name() if site_layer else None, parcels_layer.name() if parcels_layer else None)
+    )
 
     sg_code_index = parcels_layer.fields().indexFromName(sg_code_field)
     if sg_code_index == -1:
@@ -511,17 +708,14 @@ def print_progress_callback(current, maximum, message=None):
     :param message: Optional message to display in the progress bar
     :type message: str, QString
     """
-    print('%d of %d' + str(message)) % (current, maximum)
+    if message is None:
+        message = ""
+    print("%d of %d %s" % (current, maximum, message))
 
 
 def download_sg_diagrams(
-        db_manager,
-        site_layer,
-        diagram_layer,
-        sg_code_field,
-        output_directory,
-        all_features=False,
-        callback=None):
+    db_manager, site_layer, diagram_layer, sg_code_field, output_directory, all_features=False, callback=None
+):
     """Downloads all SG Diagrams.
 
     :param db_manager: A database manager
@@ -555,24 +749,22 @@ def download_sg_diagrams(
     if callback is None:
         callback = print_progress_callback
 
+    LOGGER.info("Starting download_sg_diagrams")
     sg_codes_and_provinces = map_sg_codes_to_provinces(
-        db_manager, site_layer, diagram_layer, sg_code_field, all_features)
+        db_manager, site_layer, diagram_layer, sg_code_field, all_features
+    )
+    LOGGER.info("Found %d SG codes to download: %s" % (len(sg_codes_and_provinces), sg_codes_and_provinces))
     maximum = len(sg_codes_and_provinces)
     current = 0
-    report = ''
+    report = ""
     for sg_code, province in sg_codes_and_provinces.items():
         current += 1
-        message = 'Downloading SG Code %s from %s' % (sg_code, province)
+        message = "Downloading SG Code %s from %s" % (sg_code, province)
         callback(current, maximum, message)
         try:
-            report += download_sg_diagram(
-                db_manager,
-                sg_code,
-                province,
-                output_directory,
-                callback)
+            report += download_sg_diagram(db_manager, sg_code, province, output_directory, callback)
         except Exception as e:
-            report += 'Failed to download %s %s %s\n' % (sg_code, province, e)
+            report += "Failed to download %s %s %s\n" % (sg_code, province, e)
             LOGGER.exception(e)
 
     return report
@@ -597,11 +789,7 @@ def point_to_rectangle(point):
     y_minimum = point.y() - threshold
     x_maximum = point.x() + threshold
     y_maximum = point.y() + threshold
-    rectangle = QgsRectangle(
-        x_minimum,
-        y_minimum,
-        x_maximum,
-        y_maximum)
+    rectangle = QgsRectangle(x_minimum, y_minimum, x_maximum, y_maximum)
     return rectangle
 
 
@@ -613,9 +801,8 @@ def diagram_directory():
     :rtype: str
     """
     settings = QSettings()
-    default_path = os.path.join(os.path.expanduser('~'), 'sg-diagrams')
-    output_path = settings.value(
-        'sg-diagram-downloader/output_directory', default_path)
+    default_path = os.path.join(os.path.expanduser("~"), "sg-diagrams")
+    output_path = settings.value("sg-diagram-downloader/output_directory", default_path)
     if not os.path.exists(output_path):
         os.mkdir(output_path)
     return output_path
