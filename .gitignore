@@ -48,8 +48,11 @@ coverage.xml
 
 # Django stuff:
 *.log
-!PROMPT.log
 *.pot
+
+# Claude Code
+PROMPT.log
+.claude/
 
 # Sphinx documentation
 docs/_build/
