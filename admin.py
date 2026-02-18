@@ -243,6 +243,7 @@ def copy_source_files(
         "database_manager.py",
         "definitions.py",
         "file_downloader.py",
+        "LICENSE",
         "plugin.py",
         "metadata.txt",
         "proxy.py",

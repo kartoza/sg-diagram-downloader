@@ -28,5 +28,7 @@ changelog=3.3
     - Added data/README.md documenting GeoPackage schema requirements
     - Modernized developer experience with Nix flake support
 
+license=GPLv2
+
 # deprecated flag (applies to the whole plugin, not just a single version)
 deprecated=False
