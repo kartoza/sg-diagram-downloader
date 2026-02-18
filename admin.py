@@ -260,10 +260,18 @@ def copy_source_files(
         if src.exists():
             shutil.copy(str(src), str(output_directory / filename))
 
-    # Copy data directory
+    # Copy data directory (excluding old sqlite and temp files)
     data_dir = LOCAL_ROOT_DIR / "data"
     if data_dir.exists():
-        shutil.copytree(str(data_dir), str(output_directory / "data"))
+        shutil.copytree(
+            str(data_dir),
+            str(output_directory / "data"),
+            ignore=shutil.ignore_patterns(
+                "*.sqlite",  # Exclude old sqlite database
+                "*.qgz",     # Exclude QGIS project files
+                "*.qgs",     # Exclude QGIS project files
+            )
+        )
 
     # Copy resources directory
     resources_dir = LOCAL_ROOT_DIR / "resources"
