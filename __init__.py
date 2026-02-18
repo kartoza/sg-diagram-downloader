@@ -25,19 +25,23 @@ diagrams.
 import os
 import sys
 
-from . import custom_logging
-
+# Add third party libraries to path
 THIRD_PARTY_DIR = os.path.abspath(
     os.path.join(os.path.dirname(__file__), 'third_party'))
 if THIRD_PARTY_DIR not in sys.path:
     sys.path.append(THIRD_PARTY_DIR)
 
-LOG_FILE_PATH = '/tmp/sg-download/log.log'
+# Setup logging - wrapped in try/except to prevent plugin load failure
+try:
+    from . import custom_logging
 
-SENTRY_URL = (
-    'http://9a83c384bc0f476a9ba80958704383a8:'
-    'df90821aa62e42868bbe0b40a17d24d5@sentry.linfiniti.com/11')
-custom_logging.setup_logger(SENTRY_URL)
+    SENTRY_URL = (
+        'http://9a83c384bc0f476a9ba80958704383a8:'
+        'df90821aa62e42868bbe0b40a17d24d5@sentry.linfiniti.com/11')
+    custom_logging.setup_logger(SENTRY_URL)
+except Exception:
+    # If logging setup fails, continue without it
+    pass
 
 
 # noinspection PyPep8Naming

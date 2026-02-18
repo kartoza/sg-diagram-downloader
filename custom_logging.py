@@ -14,7 +14,7 @@ import sys
 import logging
 from datetime import date
 import getpass
-from tempfile import mkstemp
+from tempfile import mkstemp, gettempdir
 
 third_party_path = os.path.abspath(
     os.path.join(os.path.dirname(__file__), 'third_party'))
@@ -48,20 +48,18 @@ __copyright__ += 'Disaster Reduction'
 
 
 def log_file_path():
-    """Get InaSAFE log file path.
+    """Get SG Downloader log file path.
 
-    :return: InaSAFE log file path.
+    :return: Log file path.
     :rtype: str
     """
-    log_temp_dir = temp_dir('logs')
-    path = os.path.join(log_temp_dir, 'sg-diagram-downloader.log')
-    return path
-
-
-def write_log_message(message, tag, level):
-    log_path = log_file_path()
-    with open(log_path, 'a') as logfile:
-        logfile.write('{}({}): {}'.format(tag, level, message))
+    try:
+        log_temp_dir = temp_dir('logs')
+        path = os.path.join(log_temp_dir, 'sg-diagram-downloader.log')
+        return path
+    except Exception:
+        # Fallback to simple temp directory if custom temp_dir fails
+        return os.path.join(gettempdir(), 'sg-diagram-downloader.log')
 
 
 class QgsLogHandler(logging.Handler):
@@ -70,29 +68,33 @@ class QgsLogHandler(logging.Handler):
     def __init__(self, level=logging.NOTSET):
         logging.Handler.__init__(self, level=level)
 
-    def emit(self, message):
+    def emit(self, record):
         """Try to log the message to QGIS if available, otherwise do nothing.
 
-        :param message: logging message containing whatever info needs to be
-                logged.
-        :type message: str
+        :param record: logging record containing the info to be logged.
+        :type record: logging.LogRecord
         """
         try:
-            from qgis.core import QgsMessageLog
-            # Check logging.LogRecord properties for lots of other goodies
-            # like line number etc. you can get from the log message.
-            # noinspection PyCallByClass
-            QgsMessageLog.instance().messageReceived.connect(write_log_message())
-            QgsMessageLog.logMessage("Your plugin code has been executed correctly",
-                                     'SG_Diagram Downloader', level=QgsMessageLog.INFO)
+            from qgis.core import QgsMessageLog, Qgis
+            # Format the message
+            msg = self.format(record)
 
-        # Make sure it doesn't crash if using without QGIS
+            # Map Python log levels to QGIS log levels
+            if record.levelno >= logging.ERROR:
+                level = Qgis.Critical
+            elif record.levelno >= logging.WARNING:
+                level = Qgis.Warning
+            else:
+                level = Qgis.Info
+
+            QgsMessageLog.logMessage(msg, 'SG Diagram Downloader', level=level)
+
         except ImportError:
+            # Not running in QGIS environment
             pass
-        except MemoryError:
-            # noinspection PyUnboundLocalVariable
-            QgsMessageLog.logMessage("Due to memory limitations on this machine, the full log, cannot be handled",
-                                     level=QgsMessageLog.WARNING)
+        except Exception:
+            # Don't let logging errors crash the application
+            pass
 
 
 def add_logging_handler_once(logger, handler):
@@ -109,18 +111,18 @@ def add_logging_handler_once(logger, handler):
     :rtype: bool
     """
     class_name = handler.__class__.__name__
-    for handler in logger.handlers:
-        if handler.__class__.__name__ == class_name:
+    for existing_handler in logger.handlers:
+        if existing_handler.__class__.__name__ == class_name:
             return False
 
     logger.addHandler(handler)
     return True
 
 
-def setup_logger(sentry_url, log_file=None):
+def setup_logger(sentry_url=None, log_file=None):
     """Run once when the module is loaded and enable logging.
 
-    :param sentry_url: Mandatory url to sentry api for remote logging.
+    :param sentry_url: Optional url to sentry api for remote logging.
         Consult your sentry instance for the client instance url.
     :type sentry_url: str
 
@@ -155,53 +157,58 @@ def setup_logger(sentry_url, log_file=None):
        /tmp/23-08-2012/timlinux/logs/qgis.log
 
     """
-    logger = logging.getLogger('QGIS')
-    logger.setLevel(logging.DEBUG)
-    default_handler_level = logging.DEBUG
-    # create formatter that will be added to the handlers
-    formatter = logging.Formatter(
-        '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    # create syslog handler which logs even debug messages
-    # log_temp_dir = temp_dir('logs')
-    path = log_file_path()
-    if log_file is None:
-        file_handler = logging.FileHandler(path)
-    else:
-        file_handler = logging.FileHandler(log_file)
-    file_handler.setLevel(default_handler_level)
-    # create console handler with a higher log level
-    console_handler = logging.StreamHandler()
-    console_handler.setLevel(logging.INFO)
+    try:
+        logger = logging.getLogger('QGIS')
+        logger.setLevel(logging.DEBUG)
+        default_handler_level = logging.DEBUG
 
-    qgis_handler = QgsLogHandler()
+        # create formatter that will be added to the handlers
+        formatter = logging.Formatter(
+            '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
-    # Sentry handler - this is optional
-    # It will only log if raven is available and Sentry is not disabled.
-    # To disable Sentry, set the environment variable:
-    #   SG_DOWNLOADER_SENTRY_DISABLED=1
-    # This is useful for debugging to avoid hangs from Sentry connections.
-    if SENTRY_AVAILABLE and sentry_url:
+        # Create file handler with fallback
         try:
-            client = Client(sentry_url)
-            sentry_handler = SentryHandler(client)
-            sentry_handler.setFormatter(formatter)
-            sentry_handler.setLevel(logging.ERROR)
-            if add_logging_handler_once(logger, sentry_handler):
-                logger.debug('Sentry logging enabled')
-        except Exception as e:
-            logger.debug('Failed to initialize Sentry: %s' % str(e))
-    else:
-        logger.debug('Sentry logging disabled')
+            path = log_file if log_file else log_file_path()
+            file_handler = logging.FileHandler(path)
+            file_handler.setLevel(default_handler_level)
+            file_handler.setFormatter(formatter)
+            add_logging_handler_once(logger, file_handler)
+        except Exception:
+            # If file logging fails, continue without it
+            pass
 
-    # Set formatters
-    file_handler.setFormatter(formatter)
-    console_handler.setFormatter(formatter)
-    qgis_handler.setFormatter(formatter)
+        # create console handler with a higher log level
+        console_handler = logging.StreamHandler()
+        console_handler.setLevel(logging.INFO)
+        console_handler.setFormatter(formatter)
+        add_logging_handler_once(logger, console_handler)
 
-    # add the handlers to the logger
-    add_logging_handler_once(logger, file_handler)
-    add_logging_handler_once(logger, console_handler)
-    add_logging_handler_once(logger, qgis_handler)
+        # QGIS log handler
+        qgis_handler = QgsLogHandler()
+        qgis_handler.setFormatter(formatter)
+        add_logging_handler_once(logger, qgis_handler)
+
+        # Sentry handler - this is optional
+        # It will only log if raven is available and Sentry is not disabled.
+        # To disable Sentry, set the environment variable:
+        #   SG_DOWNLOADER_SENTRY_DISABLED=1
+        # This is useful for debugging to avoid hangs from Sentry connections.
+        if SENTRY_AVAILABLE and sentry_url:
+            try:
+                client = Client(sentry_url)
+                sentry_handler = SentryHandler(client)
+                sentry_handler.setFormatter(formatter)
+                sentry_handler.setLevel(logging.ERROR)
+                if add_logging_handler_once(logger, sentry_handler):
+                    logger.debug('Sentry logging enabled')
+            except Exception as e:
+                logger.debug('Failed to initialize Sentry: %s' % str(e))
+        else:
+            logger.debug('Sentry logging disabled')
+
+    except Exception:
+        # If logger setup fails completely, don't crash the plugin
+        pass
 
 
 def temp_dir(sub_dir='work'):
@@ -214,25 +221,36 @@ def temp_dir(sub_dir='work'):
     :returns: Path to the temporary folder placed in the system temp dir.
     :rtype: str
     """
-    user = getpass.getuser().replace(' ', '_')
+    try:
+        user = getpass.getuser().replace(' ', '_')
+    except Exception:
+        user = 'unknown'
+
     current_date = date.today()
     date_string = current_date.isoformat()
 
-    # Following 4 lines are a workaround for tempfile.tempdir()
-    # unreliabilty
-    handle, filename = mkstemp()
-    os.close(handle)
-    new_directory = os.path.dirname(filename)
-    os.remove(filename)
+    # Use system temp directory
+    try:
+        handle, filename = mkstemp()
+        os.close(handle)
+        new_directory = os.path.dirname(filename)
+        os.remove(filename)
+    except Exception:
+        new_directory = gettempdir()
 
     temp_path = os.path.join(
         new_directory, date_string, user, sub_dir)
 
     if not os.path.exists(temp_path):
-        # Ensure that the dir is world writable
-        # Umask sets the new mask and returns the old
-        old_mask = os.umask(0000)
-        os.makedirs(temp_path, 0o777)
-        # Reinstate the old mask for tmp
-        os.umask(old_mask)
+        try:
+            # Ensure that the dir is world writable
+            # Umask sets the new mask and returns the old
+            old_mask = os.umask(0o000)
+            os.makedirs(temp_path, 0o777)
+            # Reinstate the old mask for tmp
+            os.umask(old_mask)
+        except Exception:
+            # If we can't create the directory, use system temp
+            temp_path = gettempdir()
+
     return temp_path
