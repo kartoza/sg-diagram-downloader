@@ -893,6 +893,44 @@ QLabel {
        </widget>
       </item>
       <item>
+       <widget class="QLabel" name="footer_separator">
+        <property name="styleSheet">
+         <string notr="true">
+QLabel {
+    color: #ccc;
+    font-size: 11px;
+    padding: 0 8px;
+}
+         </string>
+        </property>
+        <property name="text">
+         <string>|</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="kartoza_link">
+        <property name="styleSheet">
+         <string notr="true">
+QLabel {
+    color: #e74c3c;
+    font-size: 11px;
+}
+QLabel:hover {
+    color: #c0392b;
+    text-decoration: underline;
+}
+         </string>
+        </property>
+        <property name="text">
+         <string>Made with ❤ by Kartoza</string>
+        </property>
+        <property name="cursor">
+         <cursorShape>PointingHandCursor</cursorShape>
+        </property>
+       </widget>
+      </item>
+      <item>
        <spacer name="footer_spacer">
         <property name="orientation">
          <enum>Qt::Horizontal</enum>

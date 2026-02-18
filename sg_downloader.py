@@ -28,6 +28,7 @@ __copyright__ = ''
 import os
 from os.path import expanduser
 import logging
+import webbrowser
 
 # Import the PyQt and QGIS libraries
 # this import required to enable PyQt API v2
@@ -130,6 +131,13 @@ class DownloadDialog(QDialog, FORM_CLASS):
         # Radio button connections for visual feedback
         self.radio_selected_only.toggled.connect(self._update_selection_status)
         self.radio_all_features.toggled.connect(self._update_selection_status)
+
+        # Kartoza link - make it clickable
+        self.kartoza_link.mousePressEvent = self._on_kartoza_link_clicked
+
+    def _on_kartoza_link_clicked(self, event):
+        """Open Kartoza website when the link is clicked."""
+        webbrowser.open('https://kartoza.com')
 
     def _populate_layers(self):
         """Populate the combo boxes with all polygon layers loaded in QGIS."""
