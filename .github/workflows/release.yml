@@ -23,21 +23,11 @@ jobs:
       - name: Install plugin dependencies
         run: pip install -r requirements-dev.txt
 
-      - name: Get experimental info
-        id: get-experimental
+      - name: Get version and experimental info
+        id: get-metadata
         run: |
+          echo "VERSION=$(python -c "import configparser; c = configparser.ConfigParser(); c.read('metadata.txt'); print(c.get('general', 'version'))")" >> "$GITHUB_OUTPUT"
           echo "IS_EXPERIMENTAL=$(python -c "import configparser; c = configparser.ConfigParser(); c.read('metadata.txt'); print(str(c.get('general', 'experimental', fallback='False')).lower())")" >> "$GITHUB_OUTPUT"
-
-      - name: Create release from tag
-        id: create-release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
-          prerelease: ${{ steps.get-experimental.outputs.IS_EXPERIMENTAL }}
-          draft: false
 
       - name: Generate zip
         run: python admin.py generate-zip
@@ -48,16 +38,22 @@ jobs:
           echo "ZIP_PATH=dist/$(ls dist)" >> "$GITHUB_OUTPUT"
           echo "ZIP_NAME=$(ls dist)" >> "$GITHUB_OUTPUT"
 
-      - name: Upload release asset
-        id: upload-release-asset
-        uses: actions/upload-release-asset@v1
+      - name: Create or update release
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create-release.outputs.upload_url}}
-          asset_path: ${{ steps.get-zip-details.outputs.ZIP_PATH}}
-          asset_name: ${{ steps.get-zip-details.outputs.ZIP_NAME}}
-          asset_content_type: application/zip
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG_NAME="${GITHUB_REF#refs/tags/}"
+          # Check if release exists
+          if gh release view "$TAG_NAME" > /dev/null 2>&1; then
+            echo "Release $TAG_NAME exists, uploading asset..."
+            gh release upload "$TAG_NAME" "${{ steps.get-zip-details.outputs.ZIP_PATH }}" --clobber
+          else
+            echo "Creating release $TAG_NAME..."
+            gh release create "$TAG_NAME" \
+              --title "Release $TAG_NAME" \
+              --prerelease=${{ steps.get-metadata.outputs.IS_EXPERIMENTAL }} \
+              "${{ steps.get-zip-details.outputs.ZIP_PATH }}"
+          fi
 
       - name: Checkout release branch
         uses: actions/checkout@v4
