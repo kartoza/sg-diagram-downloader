@@ -3,7 +3,7 @@ name=SG Diagram Downloader
 description=A tool for QGIS that will download SG (South African Surveyor General) diagrams.
 qgisMinimumVersion=3.34
 qgisMaximumVersion=3.99
-version=3.3
+version=3.4
 author=Kartoza
 email=gavin@kartoza.com
 
@@ -15,18 +15,19 @@ homepage=https://github.com/kartoza/sg-diagram-downloader/
 tracker=https://github.com/kartoza/sg-diagram-downloader/issues
 repository=https://github.com/kartoza/sg-diagram-downloader/
 
-changelog=3.3
-    - Made Sentry error reporting optional via SG_DOWNLOADER_SENTRY_DISABLED env var
-    - Sentry automatically disabled in debug mode to prevent hangs
-    - Added provinces layer to GeoPackage with proper schema (geom column, EPSG:4326)
-    - Restored regional_office table with 14,067 region code mappings
-    - Fixed province lookup to use caching and pre-validation to avoid GDAL errors
-    - Added coordinate-based fallback for province detection when layer unavailable
-    - Improved logging to write to both QGIS message log and log file
-    - Dialog now always defaults to "selected features only" for safety
-    - Persist output directory and log file settings between sessions
-    - Added data/README.md documenting GeoPackage schema requirements
-    - Modernized developer experience with Nix flake support
+changelog=3.4 - Modern UI redesign with card-based 3-step workflow
+    - Completely redesigned download dialog with intuitive card-based layout
+    - Added gradient green header banner with plugin icon
+    - Radio buttons for feature selection with color-coded states
+    - Dynamic status label showing selection count with visual warnings
+    - Smart field detection for SG code fields
+    - In-dialog progress bar with real-time status messages
+    - Improved input validation with clear error dialogs
+    - Redesigned results dialog with dynamic header colors based on success/failure
+    - Added "Open Folder" button for quick access to downloads
+    - Cross-platform file/folder opening (Windows, macOS, Linux)
+    - Added clickable "Made with love by Kartoza" badge
+    - Fixed plugin failing to stay enabled on QGIS restart
 
 license=GPLv2
 
